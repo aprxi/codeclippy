@@ -3,6 +3,12 @@ name = "codeclippy"
 version = "0.0.1"
 edition = "2021"
 
+description = "Codeclippy is a utility to scan, map, and search code objects."
+documentation = "https://docs.rs/codeclippy"
+repository = "https://github.com/aprxi/codeclippy"
+readme = "README.rst"
+license = "MIT"
+
 [lib]
 name = "codeclippy"
 path = "src/lib.rs"
