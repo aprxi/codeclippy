@@ -1,4 +1,5 @@
 use syn::visit::Visit;
+use uuid::Uuid;
 
 use crate::rust_types::{RustFunction, Visibility};
 
@@ -13,6 +14,7 @@ impl<'ast> Visit<'ast> for FunctionCallVisitor {
             if let Some(last_segment) = expr_path.path.segments.last() {
                 let function_name = last_segment.ident.to_string();
                 let called_function = RustFunction {
+                    id: Uuid::new_v4().to_string(),
                     visibility: Visibility::Restricted,
                     name: function_name,
                     inputs: vec![],

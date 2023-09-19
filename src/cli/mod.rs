@@ -14,8 +14,7 @@ pub fn run_cli(args: Vec<String>) {
         .version(env!("CARGO_PKG_VERSION"))
         .arg_required_else_help(true)
         .about(format!(
-            "List code objects\n\nExample:\n {} ls \
-             src/",
+            "List code objects\n\nExample:\n {} ls src/",
             PROGRAM_NAME
         ))
         .subcommand(ls_subcommand());

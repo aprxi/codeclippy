@@ -1,17 +1,18 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::file_visitor::{NodeKind, RustFileVisitor};
+use crate::print_config::PrintConfig;
 use crate::registry::GlobalRegistry;
 use crate::rust_types::{
     RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
 };
-use crate::tree::TreeNode;
+use crate::tree::{LocalRegistry, RootNode, TreeNode};
 
 pub fn populate_tree(
     visitor: &mut RustFileVisitor,
     global_registry: &mut GlobalRegistry,
-) -> TreeNode {
-    let mut root = TreeNode::new(visitor.current_file(), NodeKind::Root);
+) -> RootNode {
+    let mut root = RootNode::new(visitor.current_file());
     let mut visited = HashSet::new();
 
     // Populate functions
@@ -29,7 +30,6 @@ pub fn populate_tree(
         // if struct is public, add to global registry so it can be referenced
         // from other files
         if rust_struct.visibility == Visibility::Public {
-            println!("Registering public struct {}", rust_struct.name);
             global_registry.register_struct(rust_struct.clone());
         }
     }
@@ -45,6 +45,95 @@ pub fn populate_tree(
     }
 
     root
+}
+
+pub fn link_missing_structs(
+    root: &mut RootNode,
+    registry: &GlobalRegistry,
+    config: &PrintConfig,
+) {
+    let mut local_registry = LocalRegistry::default();
+
+    // Register all local structs to the local registry first
+    for child in root.children() {
+        if child.should_print(config)
+            && matches!(child.kind(), NodeKind::Struct)
+        {
+            local_registry
+                .register_struct(child.name().to_string(), child.clone());
+        }
+    }
+
+    for child in root.children_mut().iter_mut() {
+        if child.should_print(config) {
+            link_missing_structs_recursive(
+                child,
+                registry,
+                &mut local_registry,
+                config,
+            );
+        }
+    }
+    root.set_local_registry(local_registry);
+}
+
+fn link_missing_structs_recursive(
+    tree: &mut TreeNode,
+    global_registry: &GlobalRegistry,
+    local_registry: &mut LocalRegistry,
+    config: &PrintConfig,
+) {
+    match tree.kind() {
+        NodeKind::Function => {
+            if let Some(func) = &mut tree.function {
+                func.extract_function_body();
+            }
+        }
+        _ => {}
+    }
+
+    let mut structs_to_add = Vec::new();
+
+    if let Some(func) = &tree.function {
+        for instantiated_struct_name in &func.instantiated_structs {
+            if local_registry
+                .get_struct_by_name(instantiated_struct_name)
+                .is_none()
+            {
+                if let Some(rust_struct) =
+                    global_registry.get_struct_by_name(instantiated_struct_name)
+                {
+                    println!(
+                        "Found struct {} in global registry",
+                        instantiated_struct_name
+                    );
+                    let new_node =
+                        create_struct_node_from_registry(rust_struct);
+                    structs_to_add.push(new_node.clone());
+
+                    local_registry.register_struct(
+                        instantiated_struct_name.clone(),
+                        new_node,
+                    );
+                }
+            }
+        }
+    }
+    // move all structs from temporary vector to tree node
+    for struct_node in structs_to_add {
+        tree.add_child(struct_node);
+    }
+
+    for child in &mut tree.children {
+        if child.should_print(config) {
+            link_missing_structs_recursive(
+                child,
+                global_registry,
+                local_registry,
+                config,
+            );
+        }
+    }
 }
 
 fn create_function_node(
@@ -124,110 +213,4 @@ fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
     }
 
     node
-}
-
-pub fn link_missing_structs(tree: &mut TreeNode, registry: &GlobalRegistry) {
-    let mut added_structs = HashSet::new();
-    let mut local_registry = LocalRegistry::default();
-
-    // Register all local structs to the local registry first
-    for child in &tree.children {
-        if matches!(child.kind(), NodeKind::Struct) {
-            local_registry
-                .register_struct(child.name().to_string(), child.clone());
-        }
-    }
-
-    link_missing_structs_recursive(
-        tree,
-        registry,
-        &mut added_structs,
-        &mut local_registry,
-    );
-}
-
-fn link_missing_structs_recursive(
-    tree: &mut TreeNode,
-    global_registry: &GlobalRegistry,
-    added_structs: &mut HashSet<String>,
-    local_registry: &mut LocalRegistry,
-) {
-    match tree.kind() {
-        NodeKind::Function => {
-            if let Some(func) = &mut tree.function {
-                func.extract_function_body();
-            }
-        }
-        _ => {}
-    }
-
-    // If the current tree node is a struct, add its name to added_structs
-    if matches!(tree.kind(), NodeKind::Struct) {
-        added_structs.insert(tree.name().to_string());
-    }
-
-    let mut structs_to_add = Vec::new();
-
-    if let Some(func) = &tree.function {
-        for instantiated_struct_name in &func.instantiated_structs {
-            if !added_structs.contains(instantiated_struct_name) {
-                if let Some(existing_node) =
-                    local_registry.get_struct(instantiated_struct_name)
-                {
-                    // TreeNode exists in the local registry, so clone it
-                    structs_to_add.push(existing_node.clone());
-                    added_structs.insert(instantiated_struct_name.clone());
-                } else if let Some(rust_struct) =
-                    global_registry.get_struct(instantiated_struct_name)
-                {
-                    // TreeNode doesn't exist in local registry,
-                    // but the RustStruct exists in global registry
-                    let struct_node =
-                        create_struct_node_from_registry(rust_struct);
-                    structs_to_add.push(struct_node);
-                    added_structs.insert(instantiated_struct_name.clone());
-                }
-            }
-        }
-    }
-
-    for struct_node in structs_to_add {
-        tree.add_child(struct_node);
-    }
-
-    for child in &mut tree.children {
-        link_missing_structs_recursive(
-            child,
-            global_registry,
-            added_structs,
-            local_registry,
-        );
-    }
-}
-
-pub struct LocalRegistry {
-    structs: HashMap<String, TreeNode>,
-    // TODO: add enums, traits, impls, etc.
-}
-
-impl Default for LocalRegistry {
-    fn default() -> Self {
-        LocalRegistry {
-            structs: HashMap::new(),
-        }
-    }
-}
-
-impl LocalRegistry {
-    pub fn register_struct(
-        &mut self,
-        rust_struct_name: String,
-        node: TreeNode,
-    ) {
-        self.structs.insert(rust_struct_name, node);
-    }
-
-    pub fn get_struct(&self, name: &str) -> Option<&TreeNode> {
-        self.structs.get(name)
-    }
 }

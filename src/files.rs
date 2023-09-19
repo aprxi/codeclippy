@@ -21,6 +21,5 @@ pub fn map_files_in_directory(
             }
         }
     }
-
     file_map
 }

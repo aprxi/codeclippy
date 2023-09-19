@@ -5,7 +5,7 @@ use crate::files::map_files_in_directory;
 use crate::populate::{link_missing_structs, populate_tree};
 use crate::print_config::PrintConfigBuilder;
 use crate::registry::GlobalRegistry;
-use crate::tree::TreeNode;
+use crate::tree::RootNode;
 
 pub fn source_map(
     directory: &str,
@@ -27,7 +27,7 @@ pub fn source_map(
     let use_full_path = false;
 
     // Populate the trees
-    let trees: Vec<TreeNode> = visitors
+    let trees: Vec<RootNode> = visitors
         .iter_mut()
         .map(|visitor| populate_tree(visitor, &mut global_registry))
         .collect();
@@ -52,23 +52,33 @@ pub fn source_map(
         }
     }
 
-    // Print the trees
     for mut root in trees {
+        println!("{}", root.filename());
         if filter.is_some() {
-            link_missing_structs(&mut root, &mut global_registry);
+            let config = PrintConfigBuilder::new()
+                .depth(0)
+                .filter(filter.clone().map(|s| s.to_string()))
+                .path(vec![])
+                .debug(debug)
+                .is_linked(false)
+                .use_full_path(use_full_path)
+                .build();
+
+            link_missing_structs(&mut root, &mut global_registry, &config);
         }
 
-        println!("Tree: {}", root.name());
-        println!("----------------------");
-        let config = PrintConfigBuilder::new()
-            .depth(0)
-            .filter(filter.map(|s| s.to_string()))
-            .path(vec![root.name().to_string()])
-            .debug(debug)
-            .is_linked(false)
-            .use_full_path(use_full_path)
-            .build();
-        root.print(config);
-        println!();
+        for child in root.children() {
+            let child_config = PrintConfigBuilder::new()
+                .depth(0)
+                .filter(filter.clone().map(|s| s.to_string()))
+                .path(vec![child.name().to_string()])
+                .debug(debug)
+                .is_linked(false)
+                .use_full_path(use_full_path)
+                .build();
+            child.print(child_config);
+        }
+
+        root.local_registry().print();
     }
 }

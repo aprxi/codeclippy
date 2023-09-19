@@ -3,6 +3,7 @@ use std::fs;
 use syn::__private::ToTokens;
 use syn::visit::Visit;
 use syn::{File, ImplItem, Item, TraitItem};
+use uuid::Uuid;
 
 use crate::rust_types::{
     RustEnum, RustFunction, RustImpl, RustStruct, RustTrait, Visibility,
@@ -138,6 +139,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                     })
                     .collect::<Vec<_>>();
                 let rust_struct = RustStruct {
+                    id: Uuid::new_v4().to_string(),
                     visibility: visibility_to_local_version(&struct_item.vis),
                     name: struct_item.ident.to_string(),
                     fields,
@@ -161,6 +163,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                     })
                     .collect::<Vec<_>>();
                 let rust_enum = RustEnum {
+                    id: Uuid::new_v4().to_string(),
                     visibility: visibility_to_local_version(&enum_item.vis),
                     name: enum_item.ident.to_string(),
                     variants,
@@ -181,6 +184,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                     })
                     .collect::<Vec<_>>();
                 let rust_trait = RustTrait {
+                    id: Uuid::new_v4().to_string(),
                     visibility: visibility_to_local_version(&trait_item.vis),
                     name: trait_item.ident.to_string(),
                     methods,
@@ -208,6 +212,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
         }
 
         let rust_impl = RustImpl {
+            id: Uuid::new_v4().to_string(),
             for_type,
             functions,
         };
@@ -244,6 +249,7 @@ fn extract_function(
     };
 
     RustFunction {
+        id: Uuid::new_v4().to_string(),
         visibility: vis
             .map_or(Visibility::Restricted, visibility_to_local_version),
         name: sig.ident.to_string(),

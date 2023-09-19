@@ -6,6 +6,7 @@ use crate::function_visitor::FunctionCallVisitor;
 
 #[derive(Clone)]
 pub struct RustFunction {
+    pub id: String,
     pub visibility: Visibility,
     pub name: String,
     pub inputs: Vec<(String, String)>,
@@ -18,6 +19,7 @@ pub struct RustFunction {
 impl std::fmt::Debug for RustFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RustFunction {{")?;
+        writeln!(f, "  id: {},", self.id)?;
         writeln!(f, "  visibility: {:?},", self.visibility)?;
         writeln!(f, "  name: {},", self.name)?;
         writeln!(f, "  inputs: {:?},", self.inputs)?;
@@ -39,6 +41,7 @@ impl std::fmt::Debug for RustFunction {
 impl fmt::Display for RustFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RustFunction {{")?;
+        writeln!(f, "  id: {},", self.id)?;
         writeln!(f, "  visibility: {:?},", self.visibility)?;
         writeln!(f, "  name: {},", self.name)?;
         writeln!(f, "  inputs: {:?},", self.inputs)?;
@@ -72,6 +75,7 @@ impl RustFunction {
 
 #[derive(Debug, Clone)]
 pub struct RustStruct {
+    pub id: String,
     pub visibility: Visibility,
     pub name: String,
     pub fields: Vec<(String, String)>,
@@ -80,6 +84,7 @@ pub struct RustStruct {
 
 #[derive(Debug, Clone)]
 pub struct RustEnum {
+    pub id: String,
     pub visibility: Visibility,
     pub name: String,
     pub variants: Vec<(String, Vec<String>)>,
@@ -88,6 +93,7 @@ pub struct RustEnum {
 
 #[derive(Debug, Clone)]
 pub struct RustTrait {
+    pub id: String,
     pub visibility: Visibility,
     pub name: String,
     pub methods: Vec<RustFunction>,
@@ -96,6 +102,7 @@ pub struct RustTrait {
 
 #[derive(Debug, Clone)]
 pub struct RustImpl {
+    pub id: String,
     pub for_type: String,
     pub functions: Vec<RustFunction>,
 }
@@ -103,6 +110,7 @@ pub struct RustImpl {
 impl fmt::Display for RustStruct {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "RustStruct {{")?;
+        writeln!(f, "  id: {},", self.id)?;
         writeln!(f, "  visibility: {:?},", self.visibility)?;
         writeln!(f, "  name: {},", self.name)?;
         writeln!(f, "  fields: {:?},", self.fields)?;
