@@ -39,6 +39,7 @@ impl PrintConfig {
 
     pub fn add_to_path(&mut self, name: String) {
         self.path.push(name);
+        self.depth += 1;
     }
 }
 

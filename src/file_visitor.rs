@@ -9,8 +9,6 @@ use crate::rust_types::{
     RustEnum, RustFunction, RustImpl, RustStruct, RustTrait, Visibility,
 };
 
-
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
     Root,

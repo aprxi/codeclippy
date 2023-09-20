@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::helpers::generate_id;
 use super::TreeNode;
+use crate::helpers::generate_id;
 
 pub struct RootNode {
     filename: String,
@@ -50,7 +50,7 @@ impl RootNode {
 pub struct LocalRegistry {
     structs_by_id: HashMap<String, TreeNode>,
     name_to_id: HashMap<String, String>, /* map struct name to its UUID
-    * TODO: add enums, traits, impls, etc. */
+                                          * TODO: add enums, traits, impls, etc. */
 }
 
 impl Default for LocalRegistry {

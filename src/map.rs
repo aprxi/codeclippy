@@ -55,23 +55,26 @@ pub fn source_map(
     for mut root in trees {
         println!("{}", root.filename());
         if filter.is_some() {
-            let config = PrintConfigBuilder::new()
+            let mut config = PrintConfigBuilder::new()
                 .depth(0)
                 .filter(filter.clone().map(|s| s.to_string()))
-                .path(vec![])
+                .path(vec![root.filename().to_string()])
                 .debug(debug)
                 .is_linked(false)
                 .use_full_path(use_full_path)
                 .build();
 
-            link_missing_structs(&mut root, &mut global_registry, &config);
+            link_missing_structs(&mut root, &mut global_registry, &mut config);
         }
 
         for child in root.children() {
             let child_config = PrintConfigBuilder::new()
-                .depth(0)
+                .depth(1)
                 .filter(filter.clone().map(|s| s.to_string()))
-                .path(vec![child.name().to_string()])
+                .path(vec![
+                    root.filename().to_string(),
+                    child.name().to_string(),
+                ])
                 .debug(debug)
                 .is_linked(false)
                 .use_full_path(use_full_path)
@@ -79,6 +82,6 @@ pub fn source_map(
             child.print(child_config);
         }
 
-        root.local_registry().print();
+        // root.local_registry().print();
     }
 }

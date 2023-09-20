@@ -80,14 +80,10 @@ impl TreeNode {
                 continue;
             }
 
-            let child_depth = if config.depth() == 0 {
-                1
-            } else if matches!(self.kind, NodeKind::Function)
-                && child.kind != NodeKind::Function
-            {
-                config.depth() + 1
-            } else {
-                config.depth() + 2
+            let child_depth = match (config.depth(), &self.kind, &child.kind) {
+                (0, _, _) => 0,
+                (_, &NodeKind::Function, &NodeKind::Function) => config.depth(),
+                _ => config.depth() + 1,
             };
 
             let mut child_config = config.clone();

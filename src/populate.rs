@@ -65,12 +65,15 @@ pub fn link_missing_structs(
     }
 
     for child in root.children_mut().iter_mut() {
-        if child.should_print(config) {
+        let mut inner_config = config.clone();
+        inner_config.add_to_path(child.name().to_string());
+
+        if child.should_print(&inner_config) {
             link_missing_structs_recursive(
                 child,
                 registry,
                 &mut local_registry,
-                config,
+                &inner_config,
             );
         }
     }
@@ -103,10 +106,6 @@ fn link_missing_structs_recursive(
                 if let Some(rust_struct) =
                     global_registry.get_struct_by_name(instantiated_struct_name)
                 {
-                    println!(
-                        "Found struct {} in global registry",
-                        instantiated_struct_name
-                    );
                     let new_node =
                         create_struct_node_from_registry(rust_struct);
                     structs_to_add.push(new_node.clone());
@@ -125,12 +124,15 @@ fn link_missing_structs_recursive(
     }
 
     for child in &mut tree.children {
-        if child.should_print(config) {
+        let mut inner_config = config.clone();
+        inner_config.add_to_path(child.name().to_string());
+
+        if child.should_print(&inner_config) {
             link_missing_structs_recursive(
                 child,
                 global_registry,
                 local_registry,
-                config,
+                &inner_config,
             );
         }
     }
