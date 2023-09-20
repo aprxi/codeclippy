@@ -1,6 +1,7 @@
 pub(crate) mod file_visitor;
 pub(crate) mod files;
 pub(crate) mod function_visitor;
+pub(crate) mod helpers;
 pub(crate) mod map;
 pub(crate) mod populate;
 pub(crate) mod print_config;

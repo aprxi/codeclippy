@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use uuid::Uuid;
-
+use crate::helpers::generate_id;
 use super::TreeNode;
 
 pub struct RootNode {
@@ -49,8 +48,8 @@ impl RootNode {
 }
 
 pub struct LocalRegistry {
-    structs_by_id: HashMap<Uuid, TreeNode>,
-    name_to_id: HashMap<String, Uuid>, /* map struct name to its UUID
+    structs_by_id: HashMap<String, TreeNode>,
+    name_to_id: HashMap<String, String>, /* map struct name to its UUID
     * TODO: add enums, traits, impls, etc. */
 }
 
@@ -68,17 +67,15 @@ impl LocalRegistry {
         &mut self,
         rust_struct_name: String,
         node: TreeNode,
-    ) -> Uuid {
-        // Generate a new UUID for the struct
-        let id = Uuid::new_v4();
+    ) {
+        // Generate a new id for the struct
+        let id = generate_id(&rust_struct_name);
 
         // Insert the struct using the UUID
-        self.structs_by_id.insert(id, node);
+        self.structs_by_id.insert(id.clone(), node);
 
         // Map the struct name to its UUID
         self.name_to_id.insert(rust_struct_name, id);
-
-        id
     }
 
     pub fn print(&self) {
@@ -87,7 +84,7 @@ impl LocalRegistry {
         }
     }
 
-    pub fn get_struct_by_id(&self, id: &Uuid) -> Option<&TreeNode> {
+    pub fn get_struct_by_id(&self, id: &str) -> Option<&TreeNode> {
         self.structs_by_id.get(id)
     }
 
