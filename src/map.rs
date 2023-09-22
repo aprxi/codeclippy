@@ -2,41 +2,28 @@ use std::path::Path;
 
 use crate::file_visitor::RustFileVisitor;
 use crate::files::map_files_in_directory;
-use crate::populate::{link_missing_structs, populate_tree};
+use crate::tree::TreeBuilder;
 use crate::print_config::PrintConfigBuilder;
-use crate::registry::GlobalRegistry;
 use crate::tree::RootNode;
 
-pub fn source_map(
-    directory: &str,
-    filter: Option<&str>,
-    maxdepth: Option<usize>,
-) {
+pub fn source_map(directory: &str, filter: Option<&str>, maxdepth: Option<usize>) {
     let project_directory = Path::new(directory);
     let file_map = map_files_in_directory(project_directory, maxdepth);
     let file_paths: Vec<&str> = file_map.iter().map(AsRef::as_ref).collect();
 
     let mut visitors = RustFileVisitor::read_files(file_paths).unwrap();
-    let mut global_registry = GlobalRegistry::default();
 
-    // TODO: derive from environment
     let debug = false;
-
-    // TODO: derive from filter input
-    // default to false for now
     let use_full_path = false;
 
-    // Populate the trees
+    let mut tree_builder = TreeBuilder::new();
     let trees: Vec<RootNode> = visitors
         .iter_mut()
-        .map(|visitor| populate_tree(visitor, &mut global_registry))
+        .map(|visitor| tree_builder.build_tree(visitor))
         .collect();
 
-    // if filter is used on non full path search, check for possible
-    // duplicate matches -- we can only return one single match
     if !use_full_path && filter.is_some() {
         let filter_str = filter.unwrap();
-
         let first_component = filter_str.split("::").next().unwrap();
         let potential_conflicts: Vec<_> = trees
             .iter()
@@ -64,7 +51,7 @@ pub fn source_map(
                 .use_full_path(use_full_path)
                 .build();
 
-            link_missing_structs(&mut root, &mut global_registry, &mut config);
+            tree_builder.link_missing_structs(&mut root, &mut config);
         }
 
         for child in root.children() {
@@ -82,6 +69,7 @@ pub fn source_map(
             child.print(child_config);
         }
 
-        // root.local_registry().print();
+        root.local_registry().print();
     }
 }
+
