@@ -2,44 +2,28 @@ use std::path::Path;
 
 use crate::file_visitor::RustFileVisitor;
 use crate::files::map_files_in_directory;
-use crate::tree::TreeBuilder;
 use crate::print_config::PrintConfigBuilder;
-use crate::tree::RootNode;
+use crate::tree::TreeBuilder;
 
-pub fn source_map(directory: &str, filter: Option<&str>, maxdepth: Option<usize>) {
+pub fn source_map(
+    directory: &str,
+    filter: Option<&str>,
+    maxdepth: Option<usize>,
+) {
     let project_directory = Path::new(directory);
     let file_map = map_files_in_directory(project_directory, maxdepth);
     let file_paths: Vec<&str> = file_map.iter().map(AsRef::as_ref).collect();
 
-    let mut visitors = RustFileVisitor::read_files(file_paths).unwrap();
+    let visitors = RustFileVisitor::read_files(file_paths).unwrap();
 
     let debug = false;
     let use_full_path = false;
 
-    let mut tree_builder = TreeBuilder::new();
-    let trees: Vec<RootNode> = visitors
-        .iter_mut()
-        .map(|visitor| tree_builder.build_tree(visitor))
-        .collect();
+    let mut builder = TreeBuilder::new(visitors);
+    let validate = !use_full_path;
+    let chunks = builder.initialize_chunks(validate, filter);
 
-    if !use_full_path && filter.is_some() {
-        let filter_str = filter.unwrap();
-        let first_component = filter_str.split("::").next().unwrap();
-        let potential_conflicts: Vec<_> = trees
-            .iter()
-            .filter(|tree| tree.has_node_named(first_component))
-            .collect();
-
-        if potential_conflicts.len() > 1 {
-            panic!(
-                "Potential conflict found. More than one tree has a node \
-                 named {}. Please specify a more specific filter.",
-                first_component
-            );
-        }
-    }
-
-    for mut root in trees {
+    for mut root in chunks {
         println!("{}", root.filename());
         if filter.is_some() {
             let mut config = PrintConfigBuilder::new()
@@ -51,7 +35,7 @@ pub fn source_map(directory: &str, filter: Option<&str>, maxdepth: Option<usize>
                 .use_full_path(use_full_path)
                 .build();
 
-            tree_builder.link_missing_structs(&mut root, &mut config);
+            builder.add_dependencies(&mut root, &mut config);
         }
 
         for child in root.children() {
@@ -72,4 +56,3 @@ pub fn source_map(directory: &str, filter: Option<&str>, maxdepth: Option<usize>
         root.local_registry().print();
     }
 }
-

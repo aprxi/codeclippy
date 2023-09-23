@@ -1,55 +1,77 @@
 
-use std::collections::HashSet;
-
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::print_config::PrintConfig;
 use crate::registry::GlobalRegistry;
-use crate::rust_types::{
-    RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
-};
+use crate::rust_types::RustStruct;
 use crate::tree::{LocalRegistry, RootNode, TreeNode};
+use super::initialize::ChunkInitializer;
 
 pub struct TreeBuilder {
+    visitors: Vec<RustFileVisitor>,
     global_registry: GlobalRegistry,
 }
 
 impl TreeBuilder {
-    pub fn new() -> Self {
+    pub fn new(visitors: Vec<RustFileVisitor>) -> Self {
         TreeBuilder {
+            visitors,
             global_registry: GlobalRegistry::default(),
         }
     }
 
-    pub fn build_tree(&mut self, visitor: &mut RustFileVisitor) -> RootNode {
-        let mut root = RootNode::new(visitor.current_file());
-        let mut visited = HashSet::new();
+    pub fn initialize_chunks(
+        &mut self,
+        validate: bool,
+        filter: Option<&str>,
+    ) -> Vec<RootNode> {
+        let chunks: Vec<RootNode> = self
+            .visitors
+            .iter_mut()
+            .map(|visitor| {
+                let mut initializer = ChunkInitializer::new(visitor);
+                initializer.initialize_tree(&mut self.global_registry)
+            })
+            .collect();
 
-        for rust_function in &visitor.functions {
-            root.add_child(create_function_node(visitor, rust_function, &mut visited));
-        }
-        for rust_struct in &visitor.structs {
-            root.add_child(create_struct_node(visitor, rust_struct, &mut visited));
-            if rust_struct.visibility == Visibility::Public {
-                self.global_registry.register_struct(rust_struct.clone());
-            }
-        }
-        for rust_enum in &visitor.enums {
-            root.add_child(create_enum_node(rust_enum));
-        }
-        for rust_trait in &visitor.traits {
-            root.add_child(create_trait_node(rust_trait));
+        if validate {
+            self.validate_chunks_for_conflicts(&chunks, filter);
         }
 
-        root
+        chunks
     }
 
-    pub fn link_missing_structs(&self, root: &mut RootNode, config: &PrintConfig) {
-        link_missing_structs(root, &self.global_registry, config);
+    fn validate_chunks_for_conflicts(
+        &self,
+        chunks: &[RootNode],
+        filter: Option<&str>,
+    ) {
+        if let Some(filter_str) = filter {
+            let first_component = filter_str.split("::").next().unwrap();
+            let potential_conflicts: Vec<_> = chunks
+                .iter()
+                .filter(|tree| tree.has_node_named(first_component))
+                .collect();
+
+            if potential_conflicts.len() > 1 {
+                panic!(
+                    "Potential conflict found. More than one chunk has a node \
+                     named {}. Please specify a more specific filter.",
+                    first_component
+                );
+            }
+        }
+    }
+
+    pub fn add_dependencies(
+        &self,
+        root: &mut RootNode,
+        config: &PrintConfig,
+    ) {
+        find_dependencies(root, &self.global_registry, config);
     }
 }
 
-
-fn link_missing_structs(
+fn find_dependencies(
     root: &mut RootNode,
     registry: &GlobalRegistry,
     config: &PrintConfig,
@@ -71,7 +93,7 @@ fn link_missing_structs(
         inner_config.add_to_path(child.name().to_string());
 
         if child.should_print(&inner_config) {
-            link_missing_structs_recursive(
+            find_dependencies_recursive(
                 child,
                 registry,
                 &mut local_registry,
@@ -82,7 +104,7 @@ fn link_missing_structs(
     root.set_local_registry(local_registry);
 }
 
-fn link_missing_structs_recursive(
+fn find_dependencies_recursive(
     tree: &mut TreeNode,
     global_registry: &GlobalRegistry,
     local_registry: &mut LocalRegistry,
@@ -90,7 +112,8 @@ fn link_missing_structs_recursive(
 ) {
     process_function_node(tree);
 
-    let structs_to_add = collect_missing_structs(tree, global_registry, local_registry);
+    let structs_to_add =
+        collect_missing_structs(tree, global_registry, local_registry);
     for struct_node in structs_to_add {
         tree.add_child(struct_node);
     }
@@ -124,7 +147,8 @@ fn collect_missing_structs(
         // and register it in the local registry
         let mut nodes_to_add = Vec::new();
         for name in missing_struct_names {
-            if let Some(rust_struct) = global_registry.get_struct_by_name(&name) {
+            if let Some(rust_struct) = global_registry.get_struct_by_name(&name)
+            {
                 let node = create_struct_node_from_registry(rust_struct);
                 local_registry.register_struct(name.clone(), node.clone());
                 nodes_to_add.push(node);
@@ -147,7 +171,7 @@ fn process_child_nodes(
         inner_config.add_to_path(child.name().to_string());
 
         if child.should_print(&inner_config) {
-            link_missing_structs_recursive(
+            find_dependencies_recursive(
                 child,
                 global_registry,
                 local_registry,
@@ -170,75 +194,4 @@ fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
     node
 }
 
-fn create_function_node(
-    visitor: &RustFileVisitor,
-    func: &RustFunction,
-    visited: &mut HashSet<String>,
-) -> TreeNode {
-    let mut node = TreeNode::new(func.name.clone(), NodeKind::Function);
-    node.function = Some(func.clone());
-
-    for called_func in &func.functions {
-        node.add_child(create_function_node(visitor, called_func, visited));
-    }
-
-    for instantiated_struct_name in &func.instantiated_structs {
-        if let Some(child_node) = create_linked_struct_node(visitor, instantiated_struct_name, visited) {
-            node.add_child(child_node);
-        }
-    }
-
-    node
-}
-
-fn create_linked_struct_node(
-    visitor: &RustFileVisitor,
-    struct_name: &String,
-    visited: &mut HashSet<String>,
-) -> Option<TreeNode> {
-    if !visited.contains(struct_name) {
-        if let Some(s) = visitor.structs.iter().find(|s| s.name == *struct_name) {
-            visited.insert(s.name.clone());
-            let mut linked_node = TreeNode::new(s.name.clone(), NodeKind::Struct);
-            linked_node.link = Some(Box::new(create_struct_node(visitor, s, visited)));
-            return Some(linked_node);
-        }
-    }
-    None
-}
-
-fn create_struct_node(
-    visitor: &RustFileVisitor,
-    s: &RustStruct,
-    visited: &mut HashSet<String>,
-) -> TreeNode {
-    visited.insert(s.name.clone());
-    let mut node = TreeNode::new(s.name.clone(), NodeKind::Struct);
-    node.fields = Some(s.fields.clone());
-
-    for method in &s.methods {
-        node.add_child(create_function_node(visitor, method, visited));
-    }
-
-    node
-}
-
-fn create_enum_node(e: &RustEnum) -> TreeNode {
-    let mut node = TreeNode::new(e.name.clone(), NodeKind::Enum);
-    for variant in &e.variants {
-        let variant_node = TreeNode::new(variant.0.clone(), NodeKind::Variant);
-        node.add_child(variant_node);
-    }
-    node
-}
-
-fn create_trait_node(t: &RustTrait) -> TreeNode {
-    let mut node = TreeNode::new(t.name.clone(), NodeKind::Trait);
-    for method in &t.methods {
-        let method_node =
-            TreeNode::new(method.name.clone(), NodeKind::Function);
-        node.add_child(method_node);
-    }
-    node
-}
 
