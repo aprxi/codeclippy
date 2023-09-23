@@ -1,7 +1,7 @@
 mod builder;
+mod initialize;
 mod root;
 mod tree;
-mod initialize;
 
 pub use builder::TreeBuilder;
 pub use root::{LocalRegistry, RootNode};

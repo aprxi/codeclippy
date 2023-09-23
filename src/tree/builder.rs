@@ -1,30 +1,36 @@
-
+use super::initialize::ChunkInitializer;
 use crate::file_visitor::{NodeKind, RustFileVisitor};
-use crate::print_config::PrintConfig;
+use crate::print_config::{PrintConfig, PrintConfigBuilder};
 use crate::registry::GlobalRegistry;
 use crate::rust_types::RustStruct;
 use crate::tree::{LocalRegistry, RootNode, TreeNode};
-use super::initialize::ChunkInitializer;
 
 pub struct TreeBuilder {
     visitors: Vec<RustFileVisitor>,
     global_registry: GlobalRegistry,
+    use_full_path: bool,
 }
 
 impl TreeBuilder {
-    pub fn new(visitors: Vec<RustFileVisitor>) -> Self {
+    pub fn new(visitors: Vec<RustFileVisitor>, use_full_path: bool) -> Self {
         TreeBuilder {
             visitors,
             global_registry: GlobalRegistry::default(),
+            use_full_path,
         }
+    }
+
+    pub fn use_full_path(&self) -> bool {
+        self.use_full_path
     }
 
     pub fn initialize_chunks(
         &mut self,
-        validate: bool,
         filter: Option<&str>,
+        link_dependencies: bool,
     ) -> Vec<RootNode> {
-        let chunks: Vec<RootNode> = self
+        let validate = !self.use_full_path;
+        let mut chunks: Vec<RootNode> = self
             .visitors
             .iter_mut()
             .map(|visitor| {
@@ -37,7 +43,38 @@ impl TreeBuilder {
             self.validate_chunks_for_conflicts(&chunks, filter);
         }
 
+        if link_dependencies {
+            self.link_dependencies(
+                &mut chunks,
+                filter,
+                self.use_full_path,
+            );
+        }
         chunks
+    }
+
+    pub fn link_dependencies(
+        &mut self,
+        chunks: &mut Vec<RootNode>,
+        filter: Option<&str>,
+        use_full_path: bool,
+    ) {
+        // TODO: get from environment
+        let debug = false;
+        for mut root in chunks {
+            if let Some(filter_str) = filter {
+                let config = PrintConfigBuilder::new()
+                    .depth(0)
+                    .filter(Some(filter_str.to_string()))
+                    .path(vec![root.filename().to_string()])
+                    .debug(debug)
+                    .is_linked(false)
+                    .use_full_path(use_full_path)
+                    .build();
+
+                self.add_dependencies(&mut root, &mut config.clone());
+            }
+        }
     }
 
     fn validate_chunks_for_conflicts(
@@ -62,11 +99,7 @@ impl TreeBuilder {
         }
     }
 
-    pub fn add_dependencies(
-        &self,
-        root: &mut RootNode,
-        config: &PrintConfig,
-    ) {
+    pub fn add_dependencies(&self, root: &mut RootNode, config: &PrintConfig) {
         find_dependencies(root, &self.global_registry, config);
     }
 }
@@ -193,5 +226,3 @@ fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
 
     node
 }
-
-

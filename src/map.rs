@@ -18,41 +18,29 @@ pub fn source_map(
 
     let debug = false;
     let use_full_path = false;
+    let link_dependencies = true;
 
-    let mut builder = TreeBuilder::new(visitors);
-    let validate = !use_full_path;
-    let chunks = builder.initialize_chunks(validate, filter);
+    let mut builder = TreeBuilder::new(visitors, use_full_path);
+    let chunks = builder.initialize_chunks(filter, link_dependencies);
 
-    for mut root in chunks {
+    for root in &chunks {
         println!("{}", root.filename());
-        if filter.is_some() {
-            let mut config = PrintConfigBuilder::new()
-                .depth(0)
-                .filter(filter.clone().map(|s| s.to_string()))
-                .path(vec![root.filename().to_string()])
-                .debug(debug)
-                .is_linked(false)
-                .use_full_path(use_full_path)
-                .build();
-
-            builder.add_dependencies(&mut root, &mut config);
+        if let Some(filter_str) = filter {
+            for child in root.children() {
+                let child_config = PrintConfigBuilder::new()
+                    .depth(1)
+                    .filter(Some(filter_str.to_string()))
+                    .path(vec![
+                        root.filename().to_string(),
+                        child.name().to_string(),
+                    ])
+                    .debug(debug)
+                    .is_linked(false)
+                    .use_full_path(builder.use_full_path())
+                    .build();
+                child.print(child_config);
+            }
         }
-
-        for child in root.children() {
-            let child_config = PrintConfigBuilder::new()
-                .depth(1)
-                .filter(filter.clone().map(|s| s.to_string()))
-                .path(vec![
-                    root.filename().to_string(),
-                    child.name().to_string(),
-                ])
-                .debug(debug)
-                .is_linked(false)
-                .use_full_path(use_full_path)
-                .build();
-            child.print(child_config);
-        }
-
         root.local_registry().print();
     }
 }

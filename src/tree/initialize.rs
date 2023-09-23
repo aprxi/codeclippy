@@ -1,15 +1,11 @@
-
 use std::collections::HashSet;
-
-use crate::rust_types::{
-    RustEnum, RustFunction, RustStruct, RustTrait,
-};
 
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::registry::GlobalRegistry;
-use crate::rust_types::Visibility;
-use crate::tree::{TreeNode, RootNode};
-
+use crate::rust_types::{
+    RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
+};
+use crate::tree::{RootNode, TreeNode};
 
 pub struct ChunkInitializer<'a> {
     visitor: &'a mut RustFileVisitor,
