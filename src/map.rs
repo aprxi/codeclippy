@@ -25,21 +25,19 @@ pub fn source_map(
 
     for root in &chunks {
         println!("{}", root.filename());
-        if let Some(filter_str) = filter {
-            for child in root.children() {
-                let child_config = PrintConfigBuilder::new()
-                    .depth(1)
-                    .filter(Some(filter_str.to_string()))
-                    .path(vec![
-                        root.filename().to_string(),
-                        child.name().to_string(),
-                    ])
-                    .debug(debug)
-                    .is_linked(false)
-                    .use_full_path(builder.use_full_path())
-                    .build();
-                child.print(child_config);
-            }
+        for child in root.children() {
+            let child_config = PrintConfigBuilder::new()
+                .depth(1)
+                .filter(filter.clone().map(|s| s.to_string()))
+                .path(vec![
+                    root.filename().to_string(),
+                    child.name().to_string(),
+                ])
+                .debug(debug)
+                .is_linked(false)
+                .use_full_path(builder.use_full_path())
+                .build();
+            child.print(child_config);
         }
         root.local_registry().print();
     }
