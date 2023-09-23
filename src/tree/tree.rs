@@ -52,8 +52,8 @@ impl TreeNode {
         }
 
         if config.debug() {
-            self.print_debug(&config);
-            return;
+            let full_path = config.path().join("::");
+            custom_println(config.depth(), &format!("[{}]", full_path));
         }
 
         match &self.kind {
@@ -130,7 +130,6 @@ impl TreeNode {
                             [config.path().clone(), vec![child.name.clone()]]
                                 .concat(),
                         )
-                        .debug(config.debug())
                         .is_linked(config.is_linked())
                         .use_full_path(config.use_full_path())
                         .build();
@@ -182,17 +181,11 @@ impl TreeNode {
             .depth(config.depth())
             .filter(None)
             .path(vec![linked_node.name.clone()])
-            .debug(config.debug())
             .is_linked(true)
             .use_full_path(config.use_full_path())
             .build();
 
         linked_node.print(linked_config);
-    }
-
-    fn print_debug(&self, config: &PrintConfig) {
-        let full_path = config.path().join("::");
-        custom_println(config.depth(), &format!("[{}]", full_path));
     }
 
     fn print_function(&self, config: &PrintConfig) {

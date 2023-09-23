@@ -14,16 +14,22 @@ pub fn source_map(
     let file_map = map_files_in_directory(project_directory, maxdepth);
     let file_paths: Vec<&str> = file_map.iter().map(AsRef::as_ref).collect();
 
+    // load file contents
     let visitors = RustFileVisitor::read_files(file_paths).unwrap();
 
-    let debug = false;
+    // TODO: setting to true allows internal pub statements having the same
+    // name. However, linking part still needs to be fixed for this to set to
+    // true permanently
     let use_full_path = false;
-    let link_dependencies = true;
+
+    // TODO: currently default on based on filter used, we may want to make
+    // this a cli option
+    let link_dependencies = filter.is_some();
 
     let mut builder = TreeBuilder::new(visitors, use_full_path);
-    let chunks = builder.initialize_chunks(filter, link_dependencies);
+    let file_chunks = builder.initialize_chunks(filter, link_dependencies);
 
-    for root in &chunks {
+    for root in &file_chunks {
         println!("{}", root.filename());
         for child in root.children() {
             let child_config = PrintConfigBuilder::new()
@@ -33,12 +39,12 @@ pub fn source_map(
                     root.filename().to_string(),
                     child.name().to_string(),
                 ])
-                .debug(debug)
                 .is_linked(false)
                 .use_full_path(builder.use_full_path())
                 .build();
             child.print(child_config);
         }
+        // print dependencies
         root.local_registry().print();
     }
 }

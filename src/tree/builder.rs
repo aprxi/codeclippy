@@ -59,15 +59,12 @@ impl TreeBuilder {
         filter: Option<&str>,
         use_full_path: bool,
     ) {
-        // TODO: get from environment
-        let debug = false;
         for mut root in chunks {
             if let Some(filter_str) = filter {
                 let config = PrintConfigBuilder::new()
                     .depth(0)
                     .filter(Some(filter_str.to_string()))
                     .path(vec![root.filename().to_string()])
-                    .debug(debug)
                     .is_linked(false)
                     .use_full_path(use_full_path)
                     .build();

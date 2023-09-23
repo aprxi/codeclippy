@@ -1,3 +1,5 @@
+use std::env;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrintConfig {
     depth: usize,
@@ -54,11 +56,17 @@ pub struct PrintConfigBuilder {
 
 impl PrintConfigBuilder {
     pub fn new() -> Self {
+
+        let debug = match env::var("DEBUG") {
+            Ok(value) => value == "true",
+            Err(_) => false,
+        };
+
         PrintConfigBuilder {
             depth: 0,
             filter: None,
             path: Vec::new(),
-            debug: false,
+            debug,
             is_linked: false,
             use_full_path: false,
         }
@@ -76,11 +84,6 @@ impl PrintConfigBuilder {
 
     pub fn path(mut self, path: Vec<String>) -> Self {
         self.path = path;
-        self
-    }
-
-    pub fn debug(mut self, debug: bool) -> Self {
-        self.debug = debug;
         self
     }
 
