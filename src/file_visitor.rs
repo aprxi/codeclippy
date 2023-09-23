@@ -11,7 +11,6 @@ use crate::rust_types::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum NodeKind {
-    Root,
     Function,
     Struct,
     Enum,

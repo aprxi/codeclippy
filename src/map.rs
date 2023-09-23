@@ -45,6 +45,7 @@ pub fn source_map(
             child.print(child_config);
         }
         // print dependencies
+        println!("Dependencies:");
         root.local_registry().print();
     }
 }

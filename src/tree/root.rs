@@ -80,7 +80,12 @@ impl LocalRegistry {
 
     pub fn print(&self) {
         for (id, struct_node) in &self.structs_by_id {
-            println!("UUID: {:?}, TreeNode: {:?}", id, struct_node);
+            println!(
+                "Name: {}\nID: {:?}\nContents:\n{:?}",
+                struct_node.name(),
+                id,
+                struct_node
+            );
         }
     }
 

@@ -58,7 +58,10 @@ impl<'a> ChunkInitializer<'a> {
                 visited,
             ));
             if rust_struct.visibility == Visibility::Public {
-                global_registry.register_struct(rust_struct.clone());
+                global_registry.register_struct(
+                    rust_struct.clone(),
+                    Some(root.filename()),
+                );
             }
         }
     }

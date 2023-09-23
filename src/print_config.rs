@@ -56,7 +56,6 @@ pub struct PrintConfigBuilder {
 
 impl PrintConfigBuilder {
     pub fn new() -> Self {
-
         let debug = match env::var("DEBUG") {
             Ok(value) => value == "true",
             Err(_) => false,

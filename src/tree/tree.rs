@@ -64,7 +64,6 @@ impl TreeNode {
             NodeKind::Enum => self.print_enum(&config),
             NodeKind::Trait => self.print_trait(&config),
             NodeKind::Variant => self.print_variant(&config),
-            NodeKind::Root => {}
         }
 
         self.print_children(&config, &mut printed_methods);
@@ -158,16 +157,6 @@ impl TreeNode {
         config.filter().as_deref().map_or(true, |f| {
             filter_path.starts_with(f) || self.name().starts_with(f)
         })
-    }
-
-    pub fn has_node_named(&self, name: &str) -> bool {
-        // check items on the root only
-        for child in &self.children {
-            if child.name == name {
-                return true;
-            }
-        }
-        false
     }
 
     fn print_linked_node(&self, linked_node: &TreeNode, config: &PrintConfig) {

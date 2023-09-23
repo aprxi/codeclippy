@@ -1,7 +1,7 @@
 use super::initialize::ChunkInitializer;
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::registry::GlobalRegistry;
+use crate::registry::{GlobalRegistry, RegistryKind};
 use crate::rust_types::RustStruct;
 use crate::tree::{LocalRegistry, RootNode, TreeNode};
 
@@ -44,11 +44,7 @@ impl TreeBuilder {
         }
 
         if link_dependencies {
-            self.link_dependencies(
-                &mut chunks,
-                filter,
-                self.use_full_path,
-            );
+            self.link_dependencies(&mut chunks, filter, self.use_full_path);
         }
         chunks
     }
@@ -173,14 +169,15 @@ fn collect_missing_structs(
             .cloned()
             .collect();
 
-        // Then, for each missing struct name, retrieve it from the global registry
-        // and register it in the local registry
+        // for each missing struct name, try retrieve it from the global
+        // registry and update local registry
         let mut nodes_to_add = Vec::new();
         for name in missing_struct_names {
-            if let Some(rust_struct) = global_registry.get_struct_by_name(&name)
+            if let Some(registry_item) = global_registry.get_item_by_name(&name)
             {
+                let RegistryKind::Struct(rust_struct) = &registry_item.item();
                 let node = create_struct_node_from_registry(rust_struct);
-                local_registry.register_struct(name.clone(), node.clone());
+                local_registry.register_struct(name, node.clone());
                 nodes_to_add.push(node);
             }
         }
