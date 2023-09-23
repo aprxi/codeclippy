@@ -42,10 +42,12 @@ pub fn source_map(
                 .is_linked(false)
                 .use_full_path(builder.use_full_path())
                 .build();
+
             child.print(child_config);
         }
-        // print dependencies
-        println!("Dependencies:");
-        root.local_registry().print();
+
+        // TODO: print only dependencies based on ID
+        //println!("Dependencies:");
+        //root.local_registry().print();
     }
 }

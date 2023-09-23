@@ -106,11 +106,12 @@ fn find_dependencies(
 
     // Register all local structs to the local registry first
     for child in root.children() {
-        if child.should_print(config)
-            && matches!(child.kind(), NodeKind::Struct)
-        {
-            local_registry
-                .register_struct(child.name().to_string(), child.clone());
+        if matches!(child.kind(), NodeKind::Struct) {
+            local_registry.register_item(
+                child.name().to_string(),
+                child.clone(),
+                None,
+            );
         }
     }
 
@@ -140,11 +141,13 @@ fn find_dependencies_recursive(
 
     let structs_to_add =
         collect_missing_structs(tree, global_registry, local_registry);
+
+    process_child_nodes(tree, global_registry, local_registry, config);
+
+    // ensure to add childs last to prevent infinite recursion
     for struct_node in structs_to_add {
         tree.add_child(struct_node);
     }
-
-    process_child_nodes(tree, global_registry, local_registry, config);
 }
 
 fn process_function_node(tree: &mut TreeNode) {
@@ -161,26 +164,29 @@ fn collect_missing_structs(
     local_registry: &mut LocalRegistry,
 ) -> Vec<TreeNode> {
     if let Some(func) = &tree.function {
-        // First, gather names of missing structs from the local registry
-        let missing_struct_names: Vec<_> = func
-            .instantiated_structs
-            .iter()
-            .filter(|name| local_registry.get_struct_by_name(name).is_none())
-            .cloned()
-            .collect();
+        // List of all instantiated structs from the function
+        let instantiated_struct_names: Vec<_> =
+            func.instantiated_structs.iter().cloned().collect();
 
-        // for each missing struct name, try retrieve it from the global
-        // registry and update local registry
+        // Create an empty vector to collect nodes
         let mut nodes_to_add = Vec::new();
-        for name in missing_struct_names {
-            if let Some(registry_item) = global_registry.get_item_by_name(&name)
+
+        for name in &instantiated_struct_names {
+            // Check if the struct exists in local registry
+            if let Some(local_item) = local_registry.get_item_by_name(name) {
+                let local_node = local_item.node().clone();
+                nodes_to_add.push(local_node.clone());
+            }
+            // If not in the local registry, try the global registry
+            else if let Some(registry_item) =
+                global_registry.get_item_by_name(name)
             {
                 let RegistryKind::Struct(rust_struct) = &registry_item.item();
                 let node = create_struct_node_from_registry(rust_struct);
-                local_registry.register_struct(name, node.clone());
                 nodes_to_add.push(node);
             }
         }
+
         return nodes_to_add;
     }
 
