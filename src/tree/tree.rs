@@ -44,17 +44,15 @@ impl TreeNode {
         self.children.push(child);
     }
 
-    pub fn print(&self, config: PrintConfig) {
+    pub fn print(&self, config: PrintConfig) -> bool {
         let mut printed_methods = HashSet::new();
 
         if !self.should_print(&config) {
             // despite not printing this node, it may still have children
-            self.print_children(&config, &mut printed_methods);
-            return;
+            return self.print_children(&config, &mut printed_methods);
         }
         if let Some(linked_node) = &self.link {
-            self.print_linked_node(linked_node, &config);
-            return;
+            return self.print_linked_node(linked_node, &config);
         }
 
         if config.debug() {
@@ -73,13 +71,15 @@ impl TreeNode {
         }
 
         self.print_children(&config, &mut printed_methods);
+        true // any of the print_ functions will print something
     }
 
     fn print_children(
         &self,
         config: &PrintConfig,
         printed_methods: &mut HashSet<String>,
-    ) {
+    ) -> bool {
+        let mut has_printed = false;
         for child in &self.children {
             if printed_methods.contains(&child.name) {
                 continue;
@@ -94,12 +94,14 @@ impl TreeNode {
             let mut child_config = config.clone();
             child_config.set_depth(child_depth);
             child_config.add_to_path(child.name.clone());
-            child.print(child_config);
+            let child_printed = child.print(child_config);
+            has_printed = has_printed || child_printed;
 
             if matches!(child.kind, NodeKind::Function) {
                 printed_methods.insert(child.name.clone());
             }
         }
+        has_printed
     }
 
     fn print_struct(
@@ -107,7 +109,10 @@ impl TreeNode {
         config: &PrintConfig,
         printed_methods: &mut HashSet<String>,
     ) {
-        custom_println(config.depth(), &format!("{} @{}#Struct", self.name, self.id));
+        custom_println(
+            config.depth(),
+            &format!("{} @{}#Struct", self.name, self.id),
+        );
 
         if let Some(fields) = &self.fields {
             if !fields.is_empty() {
@@ -165,11 +170,15 @@ impl TreeNode {
         })
     }
 
-    fn print_linked_node(&self, linked_node: &TreeNode, config: &PrintConfig) {
+    fn print_linked_node(
+        &self,
+        linked_node: &TreeNode,
+        config: &PrintConfig,
+    ) -> bool {
         if config.is_linked() {
             // If we're already printing a linked node,
             // don't print further linked nodes to prevent a recursive loop
-            return;
+            return false;
         }
 
         let linked_config = PrintConfigBuilder::new()
@@ -180,7 +189,7 @@ impl TreeNode {
             .use_full_path(config.use_full_path())
             .build();
 
-        linked_node.print(linked_config);
+        linked_node.print(linked_config)
     }
 
     fn print_function(&self, config: &PrintConfig) {
@@ -198,11 +207,20 @@ impl TreeNode {
                 });
             custom_println(
                 config.depth(),
-                &format!("{}({}){} @{}", self.name, inputs.join(", "), output, self.id),
+                &format!(
+                    "{}({}){} @{}",
+                    self.name,
+                    inputs.join(", "),
+                    output,
+                    self.id
+                ),
             );
         } else {
             // no function data found -- just print function
-            custom_println(config.depth(), &format!("{}() @{}", self.name, self.id));
+            custom_println(
+                config.depth(),
+                &format!("{}() @{}", self.name, self.id),
+            );
         }
     }
 

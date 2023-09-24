@@ -30,7 +30,7 @@ pub fn source_map(
     let file_chunks = builder.initialize_chunks(filter, link_dependencies);
 
     for root in &file_chunks {
-        println!("{}", root.filename());
+        let mut has_printed = false;
         for child in root.children() {
             let child_config = PrintConfigBuilder::new()
                 .depth(1)
@@ -43,11 +43,15 @@ pub fn source_map(
                 .use_full_path(builder.use_full_path())
                 .build();
 
-            child.print(child_config);
+            let child_printed = child.print(child_config);
+            has_printed = has_printed || child_printed;
         }
 
         // TODO: print only dependencies based on ID
-        //println!("Dependencies:");
-        //root.local_registry().print();
+        if has_printed {
+            println!("Source: {}", root.filename());
+            println!("Dependencies:");
+            root.dependencies().print();
+        }
     }
 }

@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use crate::file_visitor::{NodeKind, RustFileVisitor};
-use crate::registry::GlobalRegistry;
 use crate::helpers::generate_id;
+use crate::registry::GlobalRegistry;
 use crate::rust_types::{
     RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
 };
@@ -144,7 +144,8 @@ fn create_enum_node(e: &RustEnum) -> TreeNode {
     let mut node = TreeNode::new(&e.id, &e.name, NodeKind::Enum);
     for variant in &e.variants {
         let variant_id = generate_id(&variant.0);
-        let variant_node = TreeNode::new(&variant_id, &variant.0, NodeKind::Variant);
+        let variant_node =
+            TreeNode::new(&variant_id, &variant.0, NodeKind::Variant);
         node.add_child(variant_node);
     }
     node

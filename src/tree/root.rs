@@ -1,9 +1,9 @@
-use super::local_registry::LocalRegistry;
+use super::dependencies::Dependencies;
 use super::TreeNode;
 
 pub struct RootNode {
     filename: String,
-    local_registry: LocalRegistry,
+    dependencies: Dependencies,
     children: Vec<TreeNode>,
 }
 
@@ -11,7 +11,7 @@ impl RootNode {
     pub fn new(filename: String) -> Self {
         RootNode {
             filename,
-            local_registry: LocalRegistry::default(),
+            dependencies: Dependencies::default(),
             children: Vec::new(),
         }
     }
@@ -20,8 +20,12 @@ impl RootNode {
         &self.filename
     }
 
-    pub fn set_local_registry(&mut self, local_registry: LocalRegistry) {
-        self.local_registry = local_registry;
+    pub fn dependencies(&self) -> &Dependencies {
+        &self.dependencies
+    }
+
+    pub fn set_dependencies(&mut self, dependencies: Dependencies) {
+        self.dependencies = dependencies;
     }
 
     pub fn children(&self) -> &Vec<TreeNode> {
@@ -32,12 +36,15 @@ impl RootNode {
         &mut self.children
     }
 
-    pub fn has_node_named(&self, name: &str) -> bool {
-        self.local_registry.name_to_id().contains_key(name)
+    pub fn find_child_by_name(&self, name: &str) -> Option<&TreeNode> {
+        self.children.iter().find(|&child| child.name() == name)
+    }
+
+    pub fn has_child_named(&self, name: &str) -> bool {
+        self.find_child_by_name(name).is_some()
     }
 
     pub fn add_child(&mut self, child: TreeNode) {
         self.children.push(child);
     }
 }
-
