@@ -6,6 +6,7 @@ use crate::rust_types::RustFunction;
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
+    id: String,
     name: String,
     kind: NodeKind,
     pub children: Vec<TreeNode>,
@@ -15,15 +16,20 @@ pub struct TreeNode {
 }
 
 impl TreeNode {
-    pub fn new(name: String, kind: NodeKind) -> Self {
+    pub fn new<S: Into<String>>(id: S, name: S, kind: NodeKind) -> Self {
         TreeNode {
-            name,
+            id: id.into(),
+            name: name.into(),
             kind,
             children: Vec::new(),
             fields: None,
             function: None,
             link: None,
         }
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
     }
 
     pub fn name(&self) -> &str {
@@ -101,7 +107,7 @@ impl TreeNode {
         config: &PrintConfig,
         printed_methods: &mut HashSet<String>,
     ) {
-        custom_println(config.depth(), &format!("{} (Struct)", self.name));
+        custom_println(config.depth(), &format!("{} @{}#Struct", self.name, self.id));
 
         if let Some(fields) = &self.fields {
             if !fields.is_empty() {
@@ -192,11 +198,11 @@ impl TreeNode {
                 });
             custom_println(
                 config.depth(),
-                &format!("{}({}){}", self.name, inputs.join(", "), output),
+                &format!("{}({}){} @{}", self.name, inputs.join(", "), output, self.id),
             );
         } else {
             // no function data found -- just print function
-            custom_println(config.depth(), &format!("{}()", self.name));
+            custom_println(config.depth(), &format!("{}() @{}", self.name, self.id));
         }
     }
 

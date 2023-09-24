@@ -215,12 +215,12 @@ fn process_child_nodes(
 }
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
-    let mut node = TreeNode::new(s.name.clone(), NodeKind::Struct);
+    let mut node = TreeNode::new(&s.id, &s.name, NodeKind::Struct);
     node.fields = Some(s.fields.clone());
 
     for method in &s.methods {
         let method_node =
-            TreeNode::new(method.name.clone(), NodeKind::Function);
+            TreeNode::new(&method.id, &method.name, NodeKind::Function);
         node.add_child(method_node);
     }
 

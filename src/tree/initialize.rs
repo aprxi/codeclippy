@@ -2,6 +2,7 @@ use std::collections::HashSet;
 
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::registry::GlobalRegistry;
+use crate::helpers::generate_id;
 use crate::rust_types::{
     RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
 };
@@ -84,7 +85,7 @@ fn create_function_node(
     func: &RustFunction,
     visited: &mut HashSet<String>,
 ) -> TreeNode {
-    let mut node = TreeNode::new(func.name.clone(), NodeKind::Function);
+    let mut node = TreeNode::new(&func.id, &func.name, NodeKind::Function);
     node.function = Some(func.clone());
 
     for called_func in &func.functions {
@@ -114,7 +115,7 @@ fn create_linked_struct_node(
         {
             visited.insert(s.name.clone());
             let mut linked_node =
-                TreeNode::new(s.name.clone(), NodeKind::Struct);
+                TreeNode::new(&s.id, &s.name, NodeKind::Struct);
             linked_node.link =
                 Some(Box::new(create_struct_node(visitor, s, visited)));
             return Some(linked_node);
@@ -129,7 +130,7 @@ fn create_struct_node(
     visited: &mut HashSet<String>,
 ) -> TreeNode {
     visited.insert(s.name.clone());
-    let mut node = TreeNode::new(s.name.clone(), NodeKind::Struct);
+    let mut node = TreeNode::new(&s.id, &s.name, NodeKind::Struct);
     node.fields = Some(s.fields.clone());
 
     for method in &s.methods {
@@ -140,19 +141,20 @@ fn create_struct_node(
 }
 
 fn create_enum_node(e: &RustEnum) -> TreeNode {
-    let mut node = TreeNode::new(e.name.clone(), NodeKind::Enum);
+    let mut node = TreeNode::new(&e.id, &e.name, NodeKind::Enum);
     for variant in &e.variants {
-        let variant_node = TreeNode::new(variant.0.clone(), NodeKind::Variant);
+        let variant_id = generate_id(&variant.0);
+        let variant_node = TreeNode::new(&variant_id, &variant.0, NodeKind::Variant);
         node.add_child(variant_node);
     }
     node
 }
 
 fn create_trait_node(t: &RustTrait) -> TreeNode {
-    let mut node = TreeNode::new(t.name.clone(), NodeKind::Trait);
+    let mut node = TreeNode::new(&t.id, &t.name, NodeKind::Trait);
     for method in &t.methods {
         let method_node =
-            TreeNode::new(method.name.clone(), NodeKind::Function);
+            TreeNode::new(&method.id, &method.name, NodeKind::Function);
         node.add_child(method_node);
     }
     node
