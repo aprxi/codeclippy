@@ -16,6 +16,7 @@ pub enum NodeKind {
     Enum,
     Trait,
     Variant,
+	Link,
 }
 
 #[derive(Debug, Clone)]

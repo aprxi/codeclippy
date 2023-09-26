@@ -1,6 +1,6 @@
 mod builder;
-mod initialize;
 mod dependencies;
+mod initialize;
 mod root;
 mod tree;
 

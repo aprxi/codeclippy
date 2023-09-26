@@ -9,7 +9,7 @@ pub struct TreeNode {
     id: String,
     name: String,
     kind: NodeKind,
-    pub children: Vec<TreeNode>,
+    children: Option<Vec<TreeNode>>,
     pub fields: Option<Vec<(String, String)>>,
     pub function: Option<RustFunction>,
     pub link: Option<Box<TreeNode>>,
@@ -21,7 +21,7 @@ impl TreeNode {
             id: id.into(),
             name: name.into(),
             kind,
-            children: Vec::new(),
+            children: None,
             fields: None,
             function: None,
             link: None,
@@ -40,8 +40,12 @@ impl TreeNode {
         &self.kind
     }
 
+    pub fn children_mut(&mut self) -> &mut Vec<TreeNode> {
+        self.children.get_or_insert_with(Vec::new)
+    }
+
     pub fn add_child(&mut self, child: TreeNode) {
-        self.children.push(child);
+        self.children_mut().push(child);
     }
 
     pub fn print(&self, config: PrintConfig) -> bool {
@@ -68,6 +72,7 @@ impl TreeNode {
             NodeKind::Enum => self.print_enum(&config),
             NodeKind::Trait => self.print_trait(&config),
             NodeKind::Variant => self.print_variant(&config),
+			NodeKind::Link => self.print_link(&config),
         }
 
         self.print_children(&config, &mut printed_methods);
@@ -80,25 +85,28 @@ impl TreeNode {
         printed_methods: &mut HashSet<String>,
     ) -> bool {
         let mut has_printed = false;
-        for child in &self.children {
-            if printed_methods.contains(&child.name) {
-                continue;
-            }
 
-            let child_depth = match (config.depth(), &self.kind, &child.kind) {
-                (0, _, _) => 0,
-                (_, &NodeKind::Function, &NodeKind::Function) => config.depth(),
-                _ => config.depth() + 1,
-            };
+        if let Some(children) = &self.children {
+            for child in children {
+                if printed_methods.contains(&child.name) {
+                    continue;
+                }
 
-            let mut child_config = config.clone();
-            child_config.set_depth(child_depth);
-            child_config.add_to_path(child.name.clone());
-            let child_printed = child.print(child_config);
-            has_printed = has_printed || child_printed;
+                let child_depth = match (config.depth(), &self.kind, &child.kind) {
+                    (0, _, _) => 0,
+                    (_, &NodeKind::Function, &NodeKind::Function) => config.depth(),
+                    _ => config.depth() + 1,
+                };
 
-            if matches!(child.kind, NodeKind::Function) {
-                printed_methods.insert(child.name.clone());
+                let mut child_config = config.clone();
+                child_config.set_depth(child_depth);
+                child_config.add_to_path(child.name.clone());
+                let child_printed = child.print(child_config);
+                has_printed = has_printed || child_printed;
+
+                if matches!(child.kind, NodeKind::Function) {
+                    printed_methods.insert(child.name.clone());
+                }
             }
         }
         has_printed
@@ -125,40 +133,40 @@ impl TreeNode {
                 }
             }
         }
-        if self
-            .children
-            .iter()
-            .any(|child| matches!(child.kind, NodeKind::Function))
-        {
-            custom_println(config.depth() + 1, "Methods:");
-            for child in &self.children {
-                if matches!(child.kind, NodeKind::Function) {
-                    let child_config = PrintConfigBuilder::new()
-                        .depth(config.depth() + 2)
-                        .filter(config.filter().clone())
-                        .path(
-                            [config.path().clone(), vec![child.name.clone()]]
-                                .concat(),
-                        )
-                        .is_linked(config.is_linked())
-                        .use_full_path(config.use_full_path())
-                        .build();
 
-                    child.print(child_config);
-                    printed_methods.insert(child.name.clone());
-                }
-            }
-        }
+		if let Some(children) = &self.children {
+		    if children.iter().any(|child| matches!(child.kind, NodeKind::Function)) {
+		        custom_println(config.depth() + 1, "Methods:");
+		        for child in children {
+		            if matches!(child.kind, NodeKind::Function) {
+		                let child_config = PrintConfigBuilder::new()
+		                    .depth(config.depth() + 2)
+		                    .filter(config.filter().clone())
+		                    .path(
+		                        [config.path().clone(), vec![child.name.clone()]]
+		                            .concat(),
+		                    )
+		                    .is_linked(config.is_linked())
+		                    .use_full_path(config.use_full_path())
+		                    .build();
+
+		                child.print(child_config);
+		                printed_methods.insert(child.name.clone());
+		            }
+		        }
+		    }
+		}
+
     }
 
     pub fn should_print(&self, config: &PrintConfig) -> bool {
-        let full_path = config.path().join("::");
+        let current_path = config.path().join("::");
 
         let filter_path = if config.use_full_path() {
-            full_path
+            current_path
         } else {
             // skip first element (filename)
-            full_path
+            current_path
                 .split("::")
                 .skip(1)
                 .collect::<Vec<&str>>()
@@ -234,6 +242,11 @@ impl TreeNode {
 
     fn print_variant(&self, config: &PrintConfig) {
         custom_println(config.depth(), &format!("{} (Variant)", self.name));
+    }
+
+    fn print_link(&self, config: &PrintConfig) {
+        custom_println(config.depth(), &format!("{} @{}", self.name, self.id));
+
     }
 }
 

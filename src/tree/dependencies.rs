@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use log;
+
 use super::TreeNode;
 
 pub struct Dependencies {
@@ -21,6 +23,7 @@ impl Dependencies {
         node: TreeNode,
         source: Option<&str>,
     ) {
+        log::debug!("adding dependency: {}", node.clone().name());
         let dependency = Dependency {
             node,
             source: source.map(|s| s.to_string()),
@@ -28,8 +31,8 @@ impl Dependencies {
         self.items_by_id.insert(id.clone(), dependency);
     }
 
-    pub fn get_item_by_id(&self, id: &str) -> Option<&Dependency> {
-        self.items_by_id.get(id)
+    pub fn len(&self) -> usize {
+        self.items_by_id.len()
     }
 
     pub fn print(&self) {
@@ -40,9 +43,9 @@ impl Dependencies {
                 dependency.node().name(),
                 dependency.source().unwrap_or(""),
             );
+            //println!("{:?}", dependency.node());
         }
     }
-
 }
 
 pub struct Dependency {

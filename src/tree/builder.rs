@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use log;
+
 use super::initialize::ChunkInitializer;
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
@@ -105,27 +107,26 @@ fn find_dependencies(
     config: &PrintConfig,
 ) {
     let mut dependencies = Dependencies::default();
-
-    let local_items = root.children().clone();
-    let local_items_map: HashMap<String, &TreeNode> = local_items
+    let local_items_map: HashMap<String, TreeNode> = root
+        .children()
         .iter()
-        .map(|item| (item.name().to_string(), item))
+        .map(|item| (item.name().to_string(), item.clone()))
         .collect();
 
     for child in root.children_mut().iter_mut() {
         let mut inner_config = config.clone();
         inner_config.add_to_path(child.name().to_string());
 
-        if child.should_print(&inner_config) {
-            find_dependencies_recursive(
-                child,
-                registry,
-                &mut dependencies,
-                &local_items_map,
-                &inner_config,
-            );
-        }
+        find_dependencies_recursive(
+            child,
+            registry,
+            &mut dependencies,
+            &local_items_map,
+            &inner_config,
+        );
     }
+
+    log::debug!("Found {} dependencies", dependencies.len());
     root.set_dependencies(dependencies);
 }
 
@@ -133,29 +134,42 @@ fn find_dependencies_recursive(
     tree: &mut TreeNode,
     global_registry: &GlobalRegistry,
     dependencies: &mut Dependencies,
-    local_items_map: &HashMap<String, &TreeNode>,
+    local_items_map: &HashMap<String, TreeNode>,
     config: &PrintConfig,
 ) {
+    log::debug!("processing node: {}", tree.name());
     process_function_node(tree);
 
-    let structs_to_add = collect_missing_structs(
+    let nodes_to_add = collect_missing_structs(
         tree,
         global_registry,
         local_items_map,
         dependencies,
     );
 
-    process_child_nodes(
-        tree,
-        global_registry,
-        dependencies,
-        local_items_map,
-        config,
-    );
+    // Process child nodes directly here
+    for child in tree.children_mut() {
+        let mut inner_config = config.clone();
+        inner_config.add_to_path(child.name().to_string());
 
-    // ensure to add childs last to prevent infinite recursion
-    for struct_node in structs_to_add {
-        tree.add_child(struct_node);
+        if child.should_print(&inner_config) {
+            // Recursively call this function on each child
+            find_dependencies_recursive(
+                child,
+                global_registry,
+                dependencies,
+                local_items_map,
+                &inner_config,
+            );
+        } else {
+            log::debug!("Skipping node: {}", child.name());
+        }
+    }
+
+    // Adding nodes at the end to avoid infinite recursion
+    for node in nodes_to_add {
+        log::debug!("Adding node: {}", node.name());
+        tree.add_child(node);
     }
 }
 
@@ -170,23 +184,26 @@ fn process_function_node(tree: &mut TreeNode) {
 fn collect_missing_structs(
     tree: &TreeNode,
     global_registry: &GlobalRegistry,
-    local_items_map: &HashMap<String, &TreeNode>,
+    local_items_map: &HashMap<String, TreeNode>,
     dependencies: &mut Dependencies,
 ) -> Vec<TreeNode> {
+    let mut nodes_to_add = Vec::new();
+
     if let Some(func) = &tree.function {
         // List of all instantiated structs from the function
         let instantiated_struct_names: Vec<_> =
             func.instantiated_structs.iter().cloned().collect();
 
-        // Create an empty vector to collect nodes
-        let mut nodes_to_add = Vec::new();
-
         for name in &instantiated_struct_names {
             // Check if the struct exists in local items
             if let Some(local_item) = local_items_map.get(name) {
                 let node = (*local_item).clone();
-                dependencies.register_item(node.id().to_string(), node.clone(), None);
-                nodes_to_add.push(node);
+                dependencies.register_item(
+                    node.id().to_string(),
+                    node.clone(),
+                    None,
+                );
+                nodes_to_add.push(convert_to_linknode(node));
             }
             // If not in the local items, try global registry
             else if let Some(registry_item) =
@@ -199,37 +216,11 @@ fn collect_missing_structs(
                     node.clone(),
                     registry_item.source(),
                 );
-                nodes_to_add.push(node);
+                nodes_to_add.push(convert_to_linknode(node));
             }
         }
-
-        return nodes_to_add;
     }
-
-    Vec::new()
-}
-
-fn process_child_nodes(
-    tree: &mut TreeNode,
-    global_registry: &GlobalRegistry,
-    dependencies: &mut Dependencies,
-    local_items_map: &HashMap<String, &TreeNode>,
-    config: &PrintConfig,
-) {
-    for child in &mut tree.children {
-        let mut inner_config = config.clone();
-        inner_config.add_to_path(child.name().to_string());
-
-        if child.should_print(&inner_config) {
-            find_dependencies_recursive(
-                child,
-                global_registry,
-                dependencies,
-                local_items_map,
-                &inner_config,
-            );
-        }
-    }
+    nodes_to_add
 }
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
@@ -243,4 +234,8 @@ fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
     }
 
     node
+}
+
+fn convert_to_linknode(s: TreeNode) -> TreeNode {
+    TreeNode::new(s.id(), s.name(), NodeKind::Link)
 }

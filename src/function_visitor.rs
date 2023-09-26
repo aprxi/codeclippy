@@ -31,8 +31,7 @@ impl<'ast> Visit<'ast> for FunctionCallVisitor {
 
     fn visit_expr_struct(&mut self, expr_struct: &'ast syn::ExprStruct) {
         let struct_name = expr_struct.path.segments[0].ident.to_string();
-        self.instantiated_structs.push(struct_name.clone());
-
+        self.instantiated_structs.push(struct_name);
         syn::visit::visit_expr_struct(self, expr_struct);
     }
 }
