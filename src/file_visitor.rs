@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 
 use syn::__private::ToTokens;
@@ -16,7 +17,7 @@ pub enum NodeKind {
     Enum,
     Trait,
     Variant,
-	Link,
+    Link,
 }
 
 #[derive(Debug, Clone)]
@@ -257,7 +258,7 @@ fn extract_function(
         output: output_option,
         block,
         functions: vec![],
-        instantiated_structs: vec![],
+        instantiated_items: HashSet::new(),
     }
 }
 

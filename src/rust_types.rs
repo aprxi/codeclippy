@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 
 use syn::visit::Visit;
@@ -13,7 +14,7 @@ pub struct RustFunction {
     pub output: Option<String>,
     pub block: Option<Box<syn::Block>>,
     pub functions: Vec<RustFunction>,
-    pub instantiated_structs: Vec<String>,
+    pub instantiated_items: HashSet<String>,
 }
 
 impl std::fmt::Debug for RustFunction {
@@ -24,16 +25,13 @@ impl std::fmt::Debug for RustFunction {
         writeln!(f, "  name: {},", self.name)?;
         writeln!(f, "  inputs: {:?},", self.inputs)?;
         writeln!(f, "  output: {:?},", self.output)?;
+        writeln!(f, "  block: {},", self.block.is_some())?;
         writeln!(f, "  functions: [")?;
         for func in &self.functions {
             writeln!(f, "    {},", func)?;
         }
         writeln!(f, "  ],")?;
-        writeln!(
-            f,
-            "  instantiated_structs: {:?},",
-            self.instantiated_structs
-        )?;
+        writeln!(f, "  instantiated_items: {:?},", self.instantiated_items)?;
         write!(f, "}}")
     }
 }
@@ -51,11 +49,7 @@ impl fmt::Display for RustFunction {
             writeln!(f, "    {},", func)?;
         }
         writeln!(f, "  ],")?;
-        writeln!(
-            f,
-            "  instantiated_structs: {:?},",
-            self.instantiated_structs
-        )?;
+        writeln!(f, "  instantiated_items: {:?},", self.instantiated_items)?;
         write!(f, "}}")
     }
 }
@@ -64,11 +58,11 @@ impl RustFunction {
     pub fn extract_function_body(&mut self) {
         if let Some(ref block) = self.block {
             let mut body_visitor = FunctionCallVisitor::default();
-            body_visitor.visit_block(block); // Pass the dereferenced block
+            body_visitor.visit_block(block);
 
             self.functions.extend(body_visitor.functions);
-            self.instantiated_structs
-                .extend(body_visitor.instantiated_structs);
+            self.instantiated_items
+                .extend(body_visitor.instantiated_items);
         }
     }
 }

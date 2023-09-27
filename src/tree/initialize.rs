@@ -92,7 +92,7 @@ fn create_function_node(
         node.add_child(create_function_node(visitor, called_func, visited));
     }
 
-    for instantiated_struct_name in &func.instantiated_structs {
+    for instantiated_struct_name in &func.instantiated_items {
         if let Some(child_node) = create_linked_struct_node(
             visitor,
             instantiated_struct_name,

@@ -137,15 +137,22 @@ fn find_dependencies_recursive(
     local_items_map: &HashMap<String, TreeNode>,
     config: &PrintConfig,
 ) {
-    log::debug!("processing node: {}", tree.name());
+    log::debug!("Processing node: {}", tree.name());
     process_function_node(tree);
 
-    let nodes_to_add = collect_missing_structs(
-        tree,
-        global_registry,
-        local_items_map,
-        dependencies,
-    );
+    let mut nodes_to_add = Vec::new();
+
+    // get first item from vector
+    // if node is printed, collects its dependencies
+    if tree.should_print(config) {
+        nodes_to_add = collect_dependencies(
+            tree,
+            global_registry,
+            local_items_map,
+            dependencies,
+            config,
+        );
+    }
 
     // Process child nodes directly here
     for child in tree.children_mut() {
@@ -181,27 +188,33 @@ fn process_function_node(tree: &mut TreeNode) {
     }
 }
 
-fn collect_missing_structs(
+fn collect_dependencies(
     tree: &TreeNode,
     global_registry: &GlobalRegistry,
     local_items_map: &HashMap<String, TreeNode>,
     dependencies: &mut Dependencies,
+    config: &PrintConfig,
 ) -> Vec<TreeNode> {
+    log::debug!("Collecting dependencies for node: {}", tree.name());
     let mut nodes_to_add = Vec::new();
 
     if let Some(func) = &tree.function {
+        // node is a function
+        log::debug!("Function: {}", func.name);
+
         // List of all instantiated structs from the function
         let instantiated_struct_names: Vec<_> =
-            func.instantiated_structs.iter().cloned().collect();
+            func.instantiated_items.iter().cloned().collect();
 
         for name in &instantiated_struct_names {
             // Check if the struct exists in local items
             if let Some(local_item) = local_items_map.get(name) {
                 let node = (*local_item).clone();
+                let source = config.path().first().map(|s| s.as_str());
                 dependencies.register_item(
                     node.id().to_string(),
                     node.clone(),
-                    None,
+                    source,
                 );
                 nodes_to_add.push(convert_to_linknode(node));
             }
