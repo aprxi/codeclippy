@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::file_visitor::NodeKind;
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::rust_types::RustFunction;
+use crate::rust_types::{RustFunction, RustStruct};
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
@@ -12,6 +12,8 @@ pub struct TreeNode {
     children: Option<Vec<TreeNode>>,
     pub fields: Option<Vec<(String, String)>>,
     pub function: Option<RustFunction>,
+    // TODO: use rust_struct instead of fields
+    pub rust_struct: Option<RustStruct>,
     pub link: Option<Box<TreeNode>>,
 }
 
@@ -24,6 +26,7 @@ impl TreeNode {
             children: None,
             fields: None,
             function: None,
+            rust_struct: None,
             link: None,
         }
     }

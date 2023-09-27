@@ -132,6 +132,7 @@ fn create_struct_node(
     visited.insert(s.name.clone());
     let mut node = TreeNode::new(&s.id, &s.name, NodeKind::Struct);
     node.fields = Some(s.fields.clone());
+    node.rust_struct = Some(s.clone());
 
     for method in &s.methods {
         node.add_child(create_function_node(visitor, method, visited));

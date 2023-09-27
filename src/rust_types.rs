@@ -102,17 +102,28 @@ pub struct RustImpl {
 }
 
 impl fmt::Display for RustStruct {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "RustStruct {{")?;
-        writeln!(f, "  id: {},", self.id)?;
-        writeln!(f, "  visibility: {:?},", self.visibility)?;
-        writeln!(f, "  name: {},", self.name)?;
-        writeln!(f, "  fields: {:?},", self.fields)?;
-        writeln!(f, "  methods: [")?;
-        for method in &self.methods {
-            writeln!(f, "    {},", method)?;
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}struct {} {{\n",
+            if self.visibility.to_string().is_empty() {
+                String::from("")
+            } else {
+                format!("{} ", self.visibility)
+            },
+            self.name
+        )?;
+
+        for (field_name, field_type) in &self.fields {
+            write!(f, "    {}: {},\n", field_name, field_type)?;
         }
-        writeln!(f, "  ],")?;
+
+        // TODO: re-implement display for RustFunction,  and then re-use
+        // it here -- use raw block, see dependencies.rs
+        //        for method in &self.methods {
+        //            write!(f, "    fn {}();\n", method)?;
+        //        }
+
         write!(f, "}}")
     }
 }
@@ -122,4 +133,13 @@ pub enum Visibility {
     Public,
     Restricted,
     Inherited,
+}
+
+impl fmt::Display for Visibility {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Visibility::Public => write!(f, "pub"),
+            _ => write!(f, ""),
+        }
+    }
 }

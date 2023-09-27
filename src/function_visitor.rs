@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+
 use syn::visit::Visit;
 
 use crate::helpers::generate_id;

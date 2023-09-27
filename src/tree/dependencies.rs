@@ -6,8 +6,9 @@ use log;
 use proc_macro2::LineColumn;
 use quote::quote;
 
-//use quote::ToTokens;
 use super::TreeNode;
+use crate::file_visitor::NodeKind;
+use crate::rust_types::RustStruct;
 
 pub struct Dependencies {
     items_by_id: HashMap<String, Dependency>,
@@ -40,41 +41,70 @@ impl Dependencies {
         self.items_by_id.len()
     }
 
-
     pub fn print(&self) {
         for (id, dependency) in &self.items_by_id {
-            println!(
-                "{},{},{}",
-                id,
-                dependency.node().name(),
-                dependency.source().unwrap_or(""),
-            );
+            self.print_dependency(id, dependency);
+        }
+    }
 
-            if let Some(function) = &dependency.node().function {
-                if let Some(block) = &function.block {
-                    let tokens: proc_macro2::TokenStream = quote! { #block };
-                    let group_span =
-                        if let proc_macro2::TokenTree::Group(group) =
-                            tokens.into_iter().next().unwrap()
-                        {
-                            group.span()
-                        } else {
-                            panic!("Expected a Group");
-                        };
+    fn print_dependency(&self, id: &String, dependency: &Dependency) {
+        println!(
+            "{},{},{}",
+            id,
+            dependency.node().name(),
+            dependency.source().unwrap_or(""),
+        );
 
-                    let start = group_span.start();
-                    let end = group_span.end();
-
-                    if let Some(source_path) = &dependency.source() {
-                        if let Ok(extracted_code) = self
-                            .extract_code_from_block(start, end, source_path)
-                        {
-                            println!("Extracted Code:\n{}", extracted_code);
-                        }
-                    }
-                }
+        match dependency.node().kind() {
+            NodeKind::Function => {
+                let _ = dependency.node().function.as_ref().map_or(
+                    (),
+                    |function| {
+                        function.block.as_ref().map_or((), |block| {
+                            self.print_extracted_code(block, &dependency);
+                        })
+                    },
+                );
+            }
+            NodeKind::Struct => {
+                let rust_struct: &RustStruct =
+                    dependency.node().rust_struct.as_ref().unwrap();
+                println!("{}", rust_struct);
+            }
+            _ => {
+                log::error!(
+                    "not supported yet: {:?}",
+                    dependency.node().kind()
+                );
             }
         }
+    }
+
+    fn print_extracted_code(
+        &self,
+        block: &syn::Block,
+        dependency: &Dependency,
+    ) {
+        let tokens: proc_macro2::TokenStream = quote! { #block };
+        let group_span = tokens
+            .into_iter()
+            .next()
+            .and_then(|token| match token {
+                proc_macro2::TokenTree::Group(group) => Some(group.span()),
+                _ => None,
+            })
+            .expect("Expected a Group");
+
+        let start = group_span.start();
+        let end = group_span.end();
+
+        let _ = dependency.source().map_or((), |source_path| {
+            if let Ok(extracted_code) =
+                self.extract_code_from_block(start, end, source_path)
+            {
+                println!("Extracted Code:\n{}", extracted_code);
+            }
+        });
     }
 
     fn extract_code_from_block(
@@ -109,7 +139,7 @@ impl Dependencies {
                         line[..end_column].to_string()
                     }
                     // middle lines
-                    _ =>  line.to_string(),
+                    _ => line.to_string(),
                 }
             })
             .collect::<Vec<String>>()
