@@ -118,12 +118,14 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
         if let Item::Impl(impl_item) = item {
             self.visit_item_impl(impl_item);
         }
+        let source_file = self.current_file();
 
         match item {
             Item::Fn(func) => {
                 let rust_function = extract_function(
                     &func.sig,
                     Some(&func.vis),
+                    Some(source_file),
                     Some(func.block.clone()),
                 );
                 self.functions.push(rust_function);
@@ -178,7 +180,12 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                     .iter()
                     .filter_map(|item| {
                         if let TraitItem::Fn(method) = item {
-                            Some(extract_function(&method.sig, None, None))
+                            Some(extract_function(
+                                &method.sig,
+                                None,
+                                None,
+                                None,
+                            ))
                         } else {
                             None
                         }
@@ -200,12 +207,15 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
     fn visit_item_impl(&mut self, impl_item: &'ast syn::ItemImpl) {
         let for_type = format!("{}", impl_item.self_ty.to_token_stream());
 
+        let source_file = self.current_file();
+
         let mut functions = Vec::new();
         for item in &impl_item.items {
             if let ImplItem::Fn(func) = item {
                 let rust_function = extract_function(
                     &func.sig,
                     Some(&func.vis),
+                    Some(source_file.clone()),
                     Some(Box::new(func.block.clone())),
                 );
                 functions.push(rust_function.clone());
@@ -224,6 +234,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
 fn extract_function(
     sig: &syn::Signature,
     vis: Option<&syn::Visibility>,
+    source: Option<String>,
     block: Option<Box<syn::Block>>,
 ) -> RustFunction {
     let inputs_vec = sig
@@ -256,6 +267,7 @@ fn extract_function(
         name: sig.ident.to_string(),
         inputs: inputs_vec,
         output: output_option,
+        source,
         block,
         functions: vec![],
         instantiated_items: HashSet::new(),

@@ -23,6 +23,7 @@ impl<'ast> Visit<'ast> for FunctionCallVisitor {
                     name: function_name,
                     inputs: vec![],
                     output: None,
+                    source: None,
                     block: None,
                     functions: vec![],
                     instantiated_items: HashSet::new(),
