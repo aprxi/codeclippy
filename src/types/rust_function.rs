@@ -7,8 +7,8 @@ use proc_macro2::LineColumn;
 use quote::quote;
 use syn::visit::Visit;
 
-use super::Visibility;
 use super::format::pretty_code_fmt;
+use super::Visibility;
 use crate::function_visitor::FunctionCallVisitor;
 
 #[derive(Clone)]

@@ -1,4 +1,3 @@
-
 use std::sync::{Arc, Mutex};
 
 pub fn pretty_code_fmt(content: &mut String) {
