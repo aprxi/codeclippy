@@ -6,7 +6,7 @@ use syn::visit::Visit;
 use syn::{File, ImplItem, Item, TraitItem};
 
 use crate::helpers::generate_id;
-use crate::rust_types::{
+use crate::types::{
     RustEnum, RustFunction, RustImpl, RustStruct, RustTrait, Visibility,
 };
 

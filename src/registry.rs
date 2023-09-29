@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::rust_types::RustStruct;
+use crate::types::RustStruct;
 
 pub struct GlobalRegistry {
     items_by_id: HashMap<String, RegistryItem>,

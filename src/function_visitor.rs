@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use syn::visit::Visit;
 
 use crate::helpers::generate_id;
-use crate::rust_types::{RustFunction, Visibility};
+use crate::types::{RustFunction, Visibility};
 
 pub struct FunctionCallVisitor {
     pub functions: Vec<RustFunction>,

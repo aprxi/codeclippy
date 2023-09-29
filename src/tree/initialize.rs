@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::helpers::generate_id;
 use crate::registry::GlobalRegistry;
-use crate::rust_types::{
+use crate::types::{
     RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
 };
 use crate::tree::{RootNode, TreeNode};

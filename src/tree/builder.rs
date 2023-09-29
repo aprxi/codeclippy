@@ -6,7 +6,7 @@ use super::initialize::ChunkInitializer;
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
 use crate::registry::{GlobalRegistry, RegistryKind};
-use crate::rust_types::RustStruct;
+use crate::types::RustStruct;
 use crate::tree::{Dependencies, RootNode, TreeNode};
 
 pub struct TreeBuilder {

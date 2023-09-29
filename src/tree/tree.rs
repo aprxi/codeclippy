@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::file_visitor::NodeKind;
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::rust_types::{RustFunction, RustStruct};
+use crate::types::{RustFunction, RustStruct};
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
