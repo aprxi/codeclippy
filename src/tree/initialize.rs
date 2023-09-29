@@ -3,10 +3,8 @@ use std::collections::HashSet;
 use crate::file_visitor::{NodeKind, RustFileVisitor};
 use crate::helpers::generate_id;
 use crate::registry::GlobalRegistry;
-use crate::types::{
-    RustEnum, RustFunction, RustStruct, RustTrait, Visibility,
-};
 use crate::tree::{RootNode, TreeNode};
+use crate::types::{RustEnum, RustFunction, RustStruct, RustTrait, Visibility};
 
 pub struct ChunkInitializer<'a> {
     visitor: &'a mut RustFileVisitor,

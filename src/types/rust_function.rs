@@ -1,16 +1,15 @@
-
 use std::collections::HashSet;
-use std::fmt;
 use std::error::Error;
-use std::fs;
-use syn::visit::Visit;
+use std::fmt::Write;
+use std::{fmt, fs};
 
 use proc_macro2::LineColumn;
 use quote::quote;
+use syn::visit::Visit;
 
-use crate::function_visitor::FunctionCallVisitor;
 use super::Visibility;
-
+use super::format::pretty_code_fmt;
+use crate::function_visitor::FunctionCallVisitor;
 
 #[derive(Clone)]
 pub struct RustFunction {
@@ -46,9 +45,11 @@ impl std::fmt::Debug for RustFunction {
 
 impl fmt::Display for RustFunction {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut formatted = String::new();
+
         // Write function signature
         write!(
-            f,
+            &mut formatted,
             "{}fn {}(",
             if self.visibility.to_string().is_empty() {
                 String::from("")
@@ -62,21 +63,34 @@ impl fmt::Display for RustFunction {
         let inputs: Vec<String> = self
             .inputs
             .iter()
-            .map(|(name, typ)| format!("{}: {}", name, typ))
+            .map(|(name, typ)| {
+                if typ.is_empty() {
+                    name.clone() // if type is empty, just clone the name
+                } else {
+                    format!("{}: {}", name, typ) // else, format with ":"
+                }
+            })
             .collect();
-        write!(f, "{})", inputs.join(", "))?;
+        write!(&mut formatted, "{})", inputs.join(", "))?;
 
         // Write output type
         if let Some(output) = &self.output {
-            write!(f, "-> {}", output)?;
+            write!(&mut formatted, "-> {}", output)?;
         }
-        write!(f, "\n")?;
+        write!(&mut formatted, "\n")?;
 
         // Write function body
         if let Some(source) = &self.source {
-            print_extracted_code(&self.block.as_ref().unwrap(), &source);
+            match print_extracted_code(&self.block.as_ref().unwrap(), &source) {
+                Ok(code) => {
+                    write!(&mut formatted, "{}\n", code)?;
+                    pretty_code_fmt(&mut formatted);
+                }
+                Err(_) => write!(&mut formatted, "Error extracting code")?,
+            }
         }
-        writeln!(f, "")
+        // Write the final formatted string to the formatter
+        write!(f, "{}", formatted)
     }
 }
 
@@ -93,11 +107,10 @@ impl RustFunction {
     }
 }
 
-
 fn print_extracted_code(
     block: &syn::Block,
     source_path: &str,
-) {
+) -> Result<String, std::fmt::Error> {
     let tokens: proc_macro2::TokenStream = quote! { #block };
     let group_span = tokens
         .into_iter()
@@ -108,14 +121,15 @@ fn print_extracted_code(
         })
         .expect("Expected a Group");
 
-        let start = group_span.start();
-        let end = group_span.end();
+    let start = group_span.start();
+    let end = group_span.end();
 
-        if let Ok(extracted_code) =
-            extract_code_from_block(start, end, source_path)
-        {
-            println!("{}", extracted_code);
-        }
+    if let Ok(extracted_code) = extract_code_from_block(start, end, source_path)
+    {
+        Ok(extracted_code)
+    } else {
+        Err(std::fmt::Error)
+    }
 }
 
 fn extract_code_from_block(

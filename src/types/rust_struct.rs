@@ -1,7 +1,6 @@
-
 use std::fmt;
-use super::{RustFunction, Visibility};
 
+use super::{RustFunction, Visibility};
 
 #[derive(Debug, Clone)]
 pub struct RustStruct {

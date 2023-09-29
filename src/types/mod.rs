@@ -1,11 +1,11 @@
-mod rust_struct;
+mod format;
 mod rust_function;
+mod rust_struct;
 mod visibility;
 
-pub use rust_struct::RustStruct;
 pub use rust_function::RustFunction;
+pub use rust_struct::RustStruct;
 pub use visibility::Visibility;
-
 
 #[derive(Debug, Clone)]
 pub struct RustEnum {
