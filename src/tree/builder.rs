@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use log;
 
 use super::initialize::ChunkInitializer;
-use crate::file_visitor::{NodeKind, RustFileVisitor};
+use crate::file_visitor::RustFileVisitor;
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
 use crate::registry::{GlobalRegistry, RegistryKind};
 use crate::tree::{Dependencies, RootNode, TreeNode};
-use crate::types::RustStruct;
+use crate::types::{RustType, RustStruct};
 
 pub struct TreeBuilder {
     visitors: Vec<RustFileVisitor>,
@@ -181,7 +181,7 @@ fn find_dependencies_recursive(
 }
 
 fn process_function_node(tree: &mut TreeNode) {
-    if let NodeKind::Function = tree.kind() {
+    if let RustType::Function = tree.rtype() {
         if let Some(func) = &mut tree.function {
             func.extract_function_body();
         }
@@ -237,13 +237,13 @@ fn collect_dependencies(
 }
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
-    let mut node = TreeNode::new(s.id(), s.name(), NodeKind::Struct);
-    node.fields = Some(s.fields().clone());
+    let mut node = TreeNode::new(s.id(), s.name(), RustType::Struct);
+
     node.rust_struct = Some(s.clone());
 
     for method in s.methods() {
         let method_node =
-            TreeNode::new(method.id(), method.name(), NodeKind::Function);
+            TreeNode::new(method.id(), method.name(), RustType::Function);
         node.add_child(method_node);
     }
 
@@ -251,5 +251,5 @@ fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
 }
 
 fn convert_to_linknode(s: TreeNode) -> TreeNode {
-    TreeNode::new(s.id(), s.name(), NodeKind::Link)
+    TreeNode::new(s.id(), s.name(), RustType::Link)
 }

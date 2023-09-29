@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
-use crate::file_visitor::{NodeKind, RustFileVisitor};
+use crate::file_visitor::RustFileVisitor;
 use crate::helpers::generate_id;
 use crate::registry::GlobalRegistry;
 use crate::tree::{RootNode, TreeNode};
-use crate::types::{RustEnum, RustFunction, RustStruct, RustTrait, Visibility};
+use crate::types::{RustType, RustEnum, RustFunction, RustStruct, RustTrait, Visibility};
 
 pub struct ChunkInitializer<'a> {
     visitor: &'a mut RustFileVisitor,
@@ -83,7 +83,7 @@ fn create_function_node(
     func: &RustFunction,
     visited: &mut HashSet<String>,
 ) -> TreeNode {
-    let mut node = TreeNode::new(func.id(), func.name(), NodeKind::Function);
+    let mut node = TreeNode::new(func.id(), func.name(), RustType::Function);
     node.function = Some(func.clone());
 
     for called_func in func.functions() {
@@ -114,7 +114,7 @@ fn create_linked_struct_node(
         {
             visited.insert(s.name().to_string());
             let mut linked_node =
-                TreeNode::new(s.id(), s.name(), NodeKind::Struct);
+                TreeNode::new(s.id(), s.name(), RustType::Struct);
             linked_node.link =
                 Some(Box::new(create_struct_node(visitor, s, visited)));
             return Some(linked_node);
@@ -129,8 +129,7 @@ fn create_struct_node(
     visited: &mut HashSet<String>,
 ) -> TreeNode {
     visited.insert(s.name().to_string());
-    let mut node = TreeNode::new(s.id(), s.name(), NodeKind::Struct);
-    node.fields = Some(s.fields().clone());
+    let mut node = TreeNode::new(s.id(), s.name(), RustType::Struct);
     node.rust_struct = Some(s.clone());
 
     for method in s.methods() {
@@ -141,21 +140,21 @@ fn create_struct_node(
 }
 
 fn create_enum_node(e: &RustEnum) -> TreeNode {
-    let mut node = TreeNode::new(&e.id, &e.name, NodeKind::Enum);
+    let mut node = TreeNode::new(&e.id, &e.name, RustType::Enum);
     for variant in &e.variants {
         let variant_id = generate_id(&variant.0);
         let variant_node =
-            TreeNode::new(&variant_id, &variant.0, NodeKind::Variant);
+            TreeNode::new(&variant_id, &variant.0, RustType::Variant);
         node.add_child(variant_node);
     }
     node
 }
 
 fn create_trait_node(t: &RustTrait) -> TreeNode {
-    let mut node = TreeNode::new(&t.id, &t.name, NodeKind::Trait);
+    let mut node = TreeNode::new(&t.id, &t.name, RustType::Trait);
     for method in &t.methods {
         let method_node =
-            TreeNode::new(method.id(), method.name(), NodeKind::Function);
+            TreeNode::new(method.id(), method.name(), RustType::Function);
         node.add_child(method_node);
     }
     node

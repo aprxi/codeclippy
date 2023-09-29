@@ -9,15 +9,6 @@ use crate::types::{
     RustEnum, RustFunction, RustImpl, RustStruct, RustTrait, Visibility,
 };
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum NodeKind {
-    Function,
-    Struct,
-    Enum,
-    Trait,
-    Variant,
-    Link,
-}
 
 #[derive(Debug, Clone)]
 pub struct RustFileVisitor {

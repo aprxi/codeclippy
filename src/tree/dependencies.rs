@@ -3,8 +3,7 @@ use std::collections::HashMap;
 use log;
 
 use super::TreeNode;
-use crate::file_visitor::NodeKind;
-use crate::types::RustStruct;
+use crate::types::{RustType, RustStruct};
 
 pub struct Dependencies {
     items_by_id: HashMap<String, Dependency>,
@@ -51,8 +50,8 @@ impl Dependencies {
             dependency.source().unwrap_or(""),
         );
 
-        match dependency.node().kind() {
-            NodeKind::Function => {
+        match dependency.node().rtype() {
+            RustType::Function => {
                 let _ = dependency.node().function.as_ref().map_or(
                     (),
                     |function| {
@@ -60,7 +59,7 @@ impl Dependencies {
                     },
                 );
             }
-            NodeKind::Struct => {
+            RustType::Struct => {
                 let rust_struct: &RustStruct =
                     dependency.node().rust_struct.as_ref().unwrap();
                 println!("{}", rust_struct);
@@ -68,7 +67,7 @@ impl Dependencies {
             _ => {
                 log::error!(
                     "not supported yet: {:?}",
-                    dependency.node().kind()
+                    dependency.node().rtype()
                 );
             }
         }

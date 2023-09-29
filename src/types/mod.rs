@@ -7,6 +7,16 @@ pub use rust_function::RustFunction;
 pub use rust_struct::RustStruct;
 pub use visibility::Visibility;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum RustType {
+    Function,
+    Struct,
+    Enum,
+    Trait,
+    Variant,
+    Link,
+}
+
 #[derive(Debug, Clone)]
 pub struct RustEnum {
     pub id: String,

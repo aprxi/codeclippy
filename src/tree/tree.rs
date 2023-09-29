@@ -1,30 +1,26 @@
 use std::collections::HashSet;
 
-use crate::file_visitor::NodeKind;
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::types::{RustFunction, RustStruct};
+use crate::types::{RustType, RustFunction, RustStruct};
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
     id: String,
     name: String,
-    kind: NodeKind,
+    rtype: RustType,
     children: Option<Vec<TreeNode>>,
-    pub fields: Option<Vec<(String, String)>>,
     pub function: Option<RustFunction>,
-    // TODO: use rust_struct instead of fields
     pub rust_struct: Option<RustStruct>,
     pub link: Option<Box<TreeNode>>,
 }
 
 impl TreeNode {
-    pub fn new<S: Into<String>>(id: S, name: S, kind: NodeKind) -> Self {
+    pub fn new<S: Into<String>>(id: S, name: S, rtype: RustType) -> Self {
         TreeNode {
             id: id.into(),
             name: name.into(),
-            kind,
+            rtype,
             children: None,
-            fields: None,
             function: None,
             rust_struct: None,
             link: None,
@@ -39,8 +35,8 @@ impl TreeNode {
         &self.name
     }
 
-    pub fn kind(&self) -> &NodeKind {
-        &self.kind
+    pub fn rtype(&self) -> &RustType {
+        &self.rtype
     }
 
     pub fn children_mut(&mut self) -> &mut Vec<TreeNode> {
@@ -67,15 +63,15 @@ impl TreeNode {
             custom_println(config.depth(), &format!("[{}]", full_path));
         }
 
-        match &self.kind {
-            NodeKind::Function => self.print_function(&config),
-            NodeKind::Struct => {
+        match &self.rtype {
+            RustType::Function => self.print_function(&config),
+            RustType::Struct => {
                 self.print_struct(&config, &mut printed_methods);
             }
-            NodeKind::Enum => self.print_enum(&config),
-            NodeKind::Trait => self.print_trait(&config),
-            NodeKind::Variant => self.print_variant(&config),
-            NodeKind::Link => self.print_link(&config),
+            RustType::Enum => self.print_enum(&config),
+            RustType::Trait => self.print_trait(&config),
+            RustType::Variant => self.print_variant(&config),
+            RustType::Link => self.print_link(&config),
         }
 
         self.print_children(&config, &mut printed_methods);
@@ -96,9 +92,9 @@ impl TreeNode {
                 }
 
                 let child_depth =
-                    match (config.depth(), &self.kind, &child.kind) {
+                    match (config.depth(), &self.rtype, &child.rtype) {
                         (0, _, _) => 0,
-                        (_, &NodeKind::Function, &NodeKind::Function) => {
+                        (_, &RustType::Function, &RustType::Function) => {
                             config.depth()
                         }
                         _ => config.depth() + 1,
@@ -110,7 +106,7 @@ impl TreeNode {
                 let child_printed = child.print(child_config);
                 has_printed = has_printed || child_printed;
 
-                if matches!(child.kind, NodeKind::Function) {
+                if matches!(child.rtype, RustType::Function) {
                     printed_methods.insert(child.name.clone());
                 }
             }
@@ -128,10 +124,10 @@ impl TreeNode {
             &format!("{} @{}#Struct", self.name, self.id),
         );
 
-        if let Some(fields) = &self.fields {
-            if !fields.is_empty() {
+        if let Some(rust_struct) = &self.rust_struct {
+            if !rust_struct.fields().is_empty() {
                 custom_println(config.depth() + 1, "Fields:");
-                for (name, type_) in fields {
+                for (name, type_) in rust_struct.fields() {
                     custom_println(
                         config.depth() + 2,
                         &format!("{}: {}", name, type_),
@@ -143,11 +139,11 @@ impl TreeNode {
         if let Some(children) = &self.children {
             if children
                 .iter()
-                .any(|child| matches!(child.kind, NodeKind::Function))
+                .any(|child| matches!(child.rtype, RustType::Function))
             {
                 custom_println(config.depth() + 1, "Methods:");
                 for child in children {
-                    if matches!(child.kind, NodeKind::Function) {
+                    if matches!(child.rtype, RustType::Function) {
                         let child_config = PrintConfigBuilder::new()
                             .depth(config.depth() + 2)
                             .filter(config.filter().clone())
