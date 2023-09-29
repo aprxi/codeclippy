@@ -6,11 +6,51 @@ use super::{RustFunction, Visibility};
 
 #[derive(Debug, Clone)]
 pub struct RustStruct {
-    pub id: String,
-    pub visibility: Visibility,
-    pub name: String,
-    pub fields: Vec<(String, String)>,
-    pub methods: Vec<RustFunction>,
+    id: String,
+    visibility: Visibility,
+    name: String,
+    fields: Vec<(String, String)>,
+    methods: Vec<RustFunction>,
+}
+
+impl RustStruct {
+    pub fn new(id: &str, visibility: Visibility, name: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            visibility,
+            name: name.to_string(),
+            fields: Vec::new(),
+            methods: Vec::new(),
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn visibility(&self) -> &Visibility {
+        &self.visibility
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn fields(&self) -> &Vec<(String, String)> {
+        &self.fields
+    }
+
+    pub fn methods(&self) -> &Vec<RustFunction> {
+        &self.methods
+    }
+
+    pub fn add_fields(&mut self, fields: Vec<(String, String)>) {
+        self.fields.extend(fields);
+    }
+
+    pub fn add_methods(&mut self, methods: Vec<RustFunction>) {
+        self.methods.extend(methods);
+    }
 }
 
 impl fmt::Display for RustStruct {

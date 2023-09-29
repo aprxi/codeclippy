@@ -214,12 +214,12 @@ impl TreeNode {
     fn print_function(&self, config: &PrintConfig) {
         if let Some(function_data) = &self.function {
             let inputs: Vec<String> = function_data
-                .inputs
+                .inputs()
                 .iter()
                 .map(|(name, type_)| format!("{}: {}", name, type_))
                 .collect();
             let output = function_data
-                .output
+                .output()
                 .as_ref()
                 .map_or_else(String::new, |output_type| {
                     format!(" -> {}", output_type)

@@ -200,11 +200,11 @@ fn collect_dependencies(
 
     if let Some(func) = &tree.function {
         // node is a function
-        log::debug!("Function: {}", func.name);
+        log::debug!("Function: {}", func.name());
 
         // List of all instantiated structs from the function
         let instantiated_struct_names: Vec<_> =
-            func.instantiated_items.iter().cloned().collect();
+            func.instantiated_items().iter().cloned().collect();
 
         for name in &instantiated_struct_names {
             // Check if the struct exists in local items
@@ -237,13 +237,13 @@ fn collect_dependencies(
 }
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
-    let mut node = TreeNode::new(&s.id, &s.name, NodeKind::Struct);
-    node.fields = Some(s.fields.clone());
+    let mut node = TreeNode::new(s.id(), s.name(), NodeKind::Struct);
+    node.fields = Some(s.fields().clone());
     node.rust_struct = Some(s.clone());
 
-    for method in &s.methods {
+    for method in s.methods() {
         let method_node =
-            TreeNode::new(&method.id, &method.name, NodeKind::Function);
+            TreeNode::new(method.id(), method.name(), NodeKind::Function);
         node.add_child(method_node);
     }
 

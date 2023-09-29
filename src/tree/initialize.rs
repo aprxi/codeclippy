@@ -56,7 +56,7 @@ impl<'a> ChunkInitializer<'a> {
                 rust_struct,
                 visited,
             ));
-            if rust_struct.visibility == Visibility::Public {
+            if *rust_struct.visibility() == Visibility::Public {
                 global_registry.register_struct(
                     rust_struct.clone(),
                     Some(root.filename()),
@@ -83,14 +83,14 @@ fn create_function_node(
     func: &RustFunction,
     visited: &mut HashSet<String>,
 ) -> TreeNode {
-    let mut node = TreeNode::new(&func.id, &func.name, NodeKind::Function);
+    let mut node = TreeNode::new(func.id(), func.name(), NodeKind::Function);
     node.function = Some(func.clone());
 
-    for called_func in &func.functions {
+    for called_func in func.functions() {
         node.add_child(create_function_node(visitor, called_func, visited));
     }
 
-    for instantiated_struct_name in &func.instantiated_items {
+    for instantiated_struct_name in func.instantiated_items() {
         if let Some(child_node) = create_linked_struct_node(
             visitor,
             instantiated_struct_name,
@@ -109,11 +109,12 @@ fn create_linked_struct_node(
     visited: &mut HashSet<String>,
 ) -> Option<TreeNode> {
     if !visited.contains(struct_name) {
-        if let Some(s) = visitor.structs.iter().find(|s| s.name == *struct_name)
+        if let Some(s) =
+            visitor.structs.iter().find(|s| s.name() == *struct_name)
         {
-            visited.insert(s.name.clone());
+            visited.insert(s.name().to_string());
             let mut linked_node =
-                TreeNode::new(&s.id, &s.name, NodeKind::Struct);
+                TreeNode::new(s.id(), s.name(), NodeKind::Struct);
             linked_node.link =
                 Some(Box::new(create_struct_node(visitor, s, visited)));
             return Some(linked_node);
@@ -127,12 +128,12 @@ fn create_struct_node(
     s: &RustStruct,
     visited: &mut HashSet<String>,
 ) -> TreeNode {
-    visited.insert(s.name.clone());
-    let mut node = TreeNode::new(&s.id, &s.name, NodeKind::Struct);
-    node.fields = Some(s.fields.clone());
+    visited.insert(s.name().to_string());
+    let mut node = TreeNode::new(s.id(), s.name(), NodeKind::Struct);
+    node.fields = Some(s.fields().clone());
     node.rust_struct = Some(s.clone());
 
-    for method in &s.methods {
+    for method in s.methods() {
         node.add_child(create_function_node(visitor, method, visited));
     }
 
@@ -154,7 +155,7 @@ fn create_trait_node(t: &RustTrait) -> TreeNode {
     let mut node = TreeNode::new(&t.id, &t.name, NodeKind::Trait);
     for method in &t.methods {
         let method_node =
-            TreeNode::new(&method.id, &method.name, NodeKind::Function);
+            TreeNode::new(method.id(), method.name(), NodeKind::Function);
         node.add_child(method_node);
     }
     node

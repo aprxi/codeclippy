@@ -13,15 +13,81 @@ use crate::function_visitor::FunctionCallVisitor;
 
 #[derive(Clone)]
 pub struct RustFunction {
-    pub id: String,
-    pub visibility: Visibility,
-    pub name: String,
-    pub inputs: Vec<(String, String)>,
-    pub output: Option<String>,
-    pub source: Option<String>,
-    pub block: Option<Box<syn::Block>>,
-    pub functions: Vec<RustFunction>,
-    pub instantiated_items: HashSet<String>,
+    id: String,
+    visibility: Visibility,
+    name: String,
+    inputs: Vec<(String, String)>,
+    output: Option<String>,
+    source: Option<String>,
+    block: Option<Box<syn::Block>>,
+    functions: Vec<RustFunction>,
+    instantiated_items: HashSet<String>,
+}
+
+impl RustFunction {
+    pub fn new(id: &str, visibility: Visibility, name: &str) -> Self {
+        Self {
+            id: id.to_string(),
+            visibility,
+            name: name.to_string(),
+            inputs: Vec::new(),
+            output: None,
+            source: None,
+            block: None,
+            functions: Vec::new(),
+            instantiated_items: HashSet::new(),
+        }
+    }
+
+    pub fn new_with_details(
+        id: &str,
+        visibility: Visibility,
+        name: &str,
+        inputs: Vec<(String, String)>,
+        output: Option<String>,
+        source: Option<String>,
+        block: Option<Box<syn::Block>>,
+    ) -> Self {
+        Self {
+            id: id.to_string(),
+            visibility,
+            name: name.to_string(),
+            inputs,
+            output,
+            source,
+            block,
+            functions: Vec::new(),
+            instantiated_items: HashSet::new(),
+        }
+    }
+
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
+    pub fn visibility(&self) -> &Visibility {
+        &self.visibility
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn inputs(&self) -> &Vec<(String, String)> {
+        &self.inputs
+    }
+
+    pub fn output(&self) -> &Option<String> {
+        &self.output
+    }
+
+    pub fn functions(&self) -> &Vec<RustFunction> {
+        &self.functions
+    }
+
+    pub fn instantiated_items(&self) -> &HashSet<String> {
+        &self.instantiated_items
+    }
 }
 
 impl std::fmt::Debug for RustFunction {
@@ -51,7 +117,7 @@ impl fmt::Display for RustFunction {
         write!(
             &mut formatted,
             "{}fn {}(",
-            if self.visibility.to_string().is_empty() {
+            if self.visibility().to_string().is_empty() {
                 String::from("")
             } else {
                 format!("{} ", self.visibility)

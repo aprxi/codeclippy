@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fs;
 
 use syn::__private::ToTokens;
@@ -80,11 +79,10 @@ impl RustFileVisitor {
             if let Some(struct_to_update) = self
                 .structs
                 .iter_mut()
-                .find(|struct_item| struct_item.name == rust_impl.for_type)
+                .find(|struct_item| struct_item.name() == rust_impl.for_type)
             {
-                struct_to_update
-                    .methods
-                    .extend_from_slice(&rust_impl.functions);
+                struct_to_update.add_methods(rust_impl.functions.clone());
+
             }
         }
     }
@@ -141,13 +139,13 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                         )
                     })
                     .collect::<Vec<_>>();
-                let rust_struct = RustStruct {
-                    id: generate_id(&struct_item.ident.to_string()),
-                    visibility: visibility_to_local_version(&struct_item.vis),
-                    name: struct_item.ident.to_string(),
-                    fields,
-                    methods: vec![],
-                };
+
+                let mut rust_struct = RustStruct::new(
+                    &generate_id(&struct_item.ident.to_string()),
+                    visibility_to_local_version(&struct_item.vis),
+                    &struct_item.ident.to_string(),
+                );
+                rust_struct.add_fields(fields);
                 self.structs.push(rust_struct);
             }
             Item::Enum(enum_item) => {
@@ -260,18 +258,15 @@ fn extract_function(
         syn::ReturnType::Type(_, ty) => Some(ty.to_token_stream().to_string()),
     };
 
-    RustFunction {
-        id: generate_id(&sig.ident.to_string()),
-        visibility: vis
-            .map_or(Visibility::Restricted, visibility_to_local_version),
-        name: sig.ident.to_string(),
-        inputs: inputs_vec,
-        output: output_option,
+    RustFunction::new_with_details(
+        &generate_id(&sig.ident.to_string()),
+        vis.map_or(Visibility::Restricted, visibility_to_local_version),
+        &sig.ident.to_string(),
+        inputs_vec,
+        output_option,
         source,
         block,
-        functions: vec![],
-        instantiated_items: HashSet::new(),
-    }
+    )
 }
 
 fn visibility_to_local_version(vis: &syn::Visibility) -> Visibility {

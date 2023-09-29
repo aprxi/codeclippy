@@ -16,18 +16,11 @@ impl<'ast> Visit<'ast> for FunctionCallVisitor {
             if let Some(last_segment) = expr_path.path.segments.last() {
                 let function_name = last_segment.ident.to_string();
                 self.instantiated_items.insert(function_name.clone());
-
-                let called_function = RustFunction {
-                    id: generate_id(&function_name),
-                    visibility: Visibility::Restricted,
-                    name: function_name,
-                    inputs: vec![],
-                    output: None,
-                    source: None,
-                    block: None,
-                    functions: vec![],
-                    instantiated_items: HashSet::new(),
-                };
+                let called_function = RustFunction::new(
+                    &generate_id(&function_name),
+                    Visibility::Restricted,
+                    &function_name,
+                );
                 self.functions.push(called_function);
             }
         }

@@ -23,22 +23,24 @@ impl GlobalRegistry {
         rust_struct: RustStruct,
         source: Option<&str>,
     ) {
-        if self.name_to_id_mapping.contains_key(&rust_struct.name) {
+        if self.name_to_id_mapping.contains_key(rust_struct.name()) {
             panic!(
                 "Detected more than one public item with the name '{}'. It is \
                  not supported to have multiple public items with the same \
                  name in the global registry.",
-                rust_struct.name
+                rust_struct.name()
             );
         }
         let registry_item = RegistryItem {
             item: RegistryKind::Struct(rust_struct.clone()),
             source: source.map(|s| s.to_string()),
         };
-        self.name_to_id_mapping
-            .insert(rust_struct.name.clone(), rust_struct.id.clone());
+        self.name_to_id_mapping.insert(
+            rust_struct.name().to_string(),
+            rust_struct.id().to_string(),
+        );
         self.items_by_id
-            .insert(rust_struct.id.clone(), registry_item);
+            .insert(rust_struct.id().to_string(), registry_item);
     }
 
     pub fn get_item_by_name(&self, name: &str) -> Option<&RegistryItem> {
