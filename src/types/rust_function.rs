@@ -8,7 +8,7 @@ use quote::quote;
 use syn::visit::Visit;
 
 use super::format::pretty_code_fmt;
-use super::{Visibility, Identifiable};
+use super::{Identifiable, Visibility};
 use crate::function_visitor::FunctionCallVisitor;
 
 #[derive(Clone)]

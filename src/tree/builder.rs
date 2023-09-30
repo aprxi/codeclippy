@@ -235,12 +235,9 @@ fn collect_dependencies(
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
     let mut node = TreeNode::new(RustType::Struct(s.clone()));
     for method in s.methods() {
-        let method_node = TreeNode::new(
-            RustType::Function(method.clone()),
-        );
+        let method_node = TreeNode::new(RustType::Function(method.clone()));
         node.add_child(method_node);
     }
 
     node
 }
-

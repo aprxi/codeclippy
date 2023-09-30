@@ -20,7 +20,6 @@ pub trait Identifiable {
     fn name(&self) -> &str;
 }
 
-
 #[derive(Debug, Clone)]
 pub struct RustEnum {
     pub id: String,
@@ -59,7 +58,6 @@ impl Identifiable for RustType {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct RustTrait {

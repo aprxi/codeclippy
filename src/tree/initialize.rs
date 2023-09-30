@@ -84,8 +84,7 @@ fn create_function_node(
     func: &RustFunction,
     visited: &mut HashSet<String>,
 ) -> TreeNode {
-    let mut node =
-        TreeNode::new(RustType::Function(func.clone()));
+    let mut node = TreeNode::new(RustType::Function(func.clone()));
     for called_func in func.functions() {
         node.add_child(create_function_node(visitor, called_func, visited));
     }
@@ -113,8 +112,7 @@ fn create_linked_struct_node(
             visitor.structs.iter().find(|s| s.name() == *struct_name)
         {
             visited.insert(s.name().to_string());
-            let mut linked_node =
-                TreeNode::new(RustType::Struct(s.clone()));
+            let mut linked_node = TreeNode::new(RustType::Struct(s.clone()));
             linked_node.link =
                 Some(Box::new(create_struct_node(visitor, s, visited)));
             return Some(linked_node);
@@ -144,9 +142,7 @@ fn create_enum_node(e: &RustEnum) -> TreeNode {
 fn create_trait_node(t: &RustTrait) -> TreeNode {
     let mut node = TreeNode::new(RustType::Trait(t.clone()));
     for method in &t.methods {
-        let method_node = TreeNode::new(
-            RustType::Function(method.clone()),
-        );
+        let method_node = TreeNode::new(RustType::Function(method.clone()));
         node.add_child(method_node);
     }
     node

@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::Write;
 
 use super::format::pretty_code_fmt;
-use super::{RustFunction, Visibility, Identifiable};
+use super::{Identifiable, RustFunction, Visibility};
 
 #[derive(Debug, Clone)]
 pub struct RustStruct {
