@@ -8,7 +8,7 @@ use quote::quote;
 use syn::visit::Visit;
 
 use super::format::pretty_code_fmt;
-use super::Visibility;
+use super::{Visibility, Identifiable};
 use crate::function_visitor::FunctionCallVisitor;
 
 #[derive(Clone)]
@@ -87,6 +87,16 @@ impl RustFunction {
 
     pub fn instantiated_items(&self) -> &HashSet<String> {
         &self.instantiated_items
+    }
+}
+
+impl Identifiable for RustFunction {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 

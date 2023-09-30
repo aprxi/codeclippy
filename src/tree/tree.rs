@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::types::{RustFunction, RustStruct, RustType};
+use crate::types::{Identifiable, RustFunction, RustStruct, RustType};
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
@@ -13,10 +13,10 @@ pub struct TreeNode {
 }
 
 impl TreeNode {
-    pub fn new<S: Into<String>>(id: S, name: S, rtype: RustType) -> Self {
+    pub fn new(rtype: RustType) -> Self {
         TreeNode {
-            id: id.into(),
-            name: name.into(),
+            id: rtype.id().into(),
+            name: rtype.name().into(),
             rtype,
             children: None,
             link: None,

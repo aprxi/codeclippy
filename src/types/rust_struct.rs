@@ -2,7 +2,7 @@ use std::fmt;
 use std::fmt::Write;
 
 use super::format::pretty_code_fmt;
-use super::{RustFunction, Visibility};
+use super::{RustFunction, Visibility, Identifiable};
 
 #[derive(Debug, Clone)]
 pub struct RustStruct {
@@ -50,6 +50,16 @@ impl RustStruct {
 
     pub fn add_methods(&mut self, methods: Vec<RustFunction>) {
         self.methods.extend(methods);
+    }
+}
+
+impl Identifiable for RustStruct {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn name(&self) -> &str {
+        &self.name
     }
 }
 
