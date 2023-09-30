@@ -140,12 +140,10 @@ fn find_dependencies_recursive(
     log::debug!("Processing node: {}", tree.name());
     process_function_node(tree);
 
-    let mut nodes_to_add = Vec::new();
-
     // get first item from vector
     // if node is printed, collects its dependencies
     if tree.should_print(config) {
-        nodes_to_add = collect_dependencies(
+        collect_dependencies(
             tree,
             global_registry,
             local_items_map,
@@ -172,12 +170,6 @@ fn find_dependencies_recursive(
             log::debug!("Skipping node: {}", child.name());
         }
     }
-
-    // Adding nodes at the end to avoid infinite recursion
-    for node in nodes_to_add {
-        log::debug!("Adding node: {}", node.name());
-        tree.add_child(node);
-    }
 }
 
 fn process_function_node(tree: &mut TreeNode) {
@@ -192,9 +184,8 @@ fn collect_dependencies(
     local_items_map: &HashMap<String, TreeNode>,
     dependencies: &mut Dependencies,
     config: &PrintConfig,
-) -> Vec<TreeNode> {
+) {
     log::debug!("Collecting dependencies for node: {}", tree.name());
-    let mut nodes_to_add = Vec::new();
 
     match &tree.rtype() {
         RustType::Function(rust_function) => {
@@ -212,7 +203,6 @@ fn collect_dependencies(
                         node.clone(),
                         source,
                     );
-                    nodes_to_add.push(convert_to_linknode(node));
                 }
                 // If not in the local items, try global registry
                 else if let Some(registry_item) =
@@ -226,7 +216,6 @@ fn collect_dependencies(
                         node.clone(),
                         registry_item.source(),
                     );
-                    nodes_to_add.push(convert_to_linknode(node));
                 }
             }
         }
@@ -241,7 +230,6 @@ fn collect_dependencies(
             panic!("Unhandled RustType variant: {:?}", tree.rtype());
         }
     }
-    nodes_to_add
 }
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
@@ -258,6 +246,3 @@ fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
     node
 }
 
-fn convert_to_linknode(s: TreeNode) -> TreeNode {
-    TreeNode::new(s.id(), s.name(), RustType::Link)
-}

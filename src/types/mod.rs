@@ -11,10 +11,8 @@ pub use visibility::Visibility;
 pub enum RustType {
     Function(RustFunction),
     Struct(RustStruct),
-    Enum,
-    Trait,
-    Variant,
-    Link,
+    Enum(RustEnum),
+    Trait(RustTrait),
 }
 
 #[derive(Debug, Clone)]

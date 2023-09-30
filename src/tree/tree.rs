@@ -70,10 +70,8 @@ impl TreeNode {
             RustType::Struct(rust_struct) => {
                 self.print_struct(&config, &mut printed_methods, rust_struct);
             }
-            RustType::Enum => self.print_enum(&config),
-            RustType::Trait => self.print_trait(&config),
-            RustType::Variant => self.print_variant(&config),
-            RustType::Link => self.print_link(&config),
+            RustType::Enum(_) => self.print_enum(&config),
+            RustType::Trait(_) => self.print_trait(&config),
         }
 
         self.print_children(&config, &mut printed_methods);
@@ -242,14 +240,6 @@ impl TreeNode {
 
     fn print_trait(&self, config: &PrintConfig) {
         custom_println(config.depth(), &format!("{} (Trait)", self.name));
-    }
-
-    fn print_variant(&self, config: &PrintConfig) {
-        custom_println(config.depth(), &format!("{} (Variant)", self.name));
-    }
-
-    fn print_link(&self, config: &PrintConfig) {
-        custom_println(config.depth(), &format!("{} @{}", self.name, self.id));
     }
 }
 

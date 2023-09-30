@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use crate::file_visitor::RustFileVisitor;
-use crate::helpers::generate_id;
 use crate::registry::GlobalRegistry;
 use crate::tree::{RootNode, TreeNode};
 use crate::types::{
@@ -139,18 +138,11 @@ fn create_struct_node(
 }
 
 fn create_enum_node(e: &RustEnum) -> TreeNode {
-    let mut node = TreeNode::new(&e.id, &e.name, RustType::Enum);
-    for variant in &e.variants {
-        let variant_id = generate_id(&variant.0);
-        let variant_node =
-            TreeNode::new(&variant_id, &variant.0, RustType::Variant);
-        node.add_child(variant_node);
-    }
-    node
+    TreeNode::new(&e.id, &e.name, RustType::Enum(e.clone()))
 }
 
 fn create_trait_node(t: &RustTrait) -> TreeNode {
-    let mut node = TreeNode::new(&t.id, &t.name, RustType::Trait);
+    let mut node = TreeNode::new(&t.id, &t.name, RustType::Trait(t.clone()));
     for method in &t.methods {
         let method_node = TreeNode::new(
             method.id(),
