@@ -1,5 +1,6 @@
 use super::dependencies::Dependencies;
 use super::TreeNode;
+use crate::print_config::PrintConfigBuilder;
 
 pub struct RootNode {
     filename: String,
@@ -34,6 +35,26 @@ impl RootNode {
 
     pub fn children_mut(&mut self) -> &mut Vec<TreeNode> {
         &mut self.children
+    }
+
+    pub fn print(&self, filter: Option<&str>, use_full_path: bool) {
+        // if no filter is defined, print as a tree
+        let as_tree = !filter.is_some();
+
+        for child in self.children() {
+            let config = PrintConfigBuilder::new()
+                .depth(1)
+                .filter(filter.map(|s| s.to_string()))
+                .path(vec![
+                    self.filename().to_string(),
+                    child.name().to_string(),
+                ])
+                .is_linked(false)
+                .use_full_path(use_full_path)
+                .build();
+
+            child.print(config, as_tree);
+        }
     }
 
     pub fn find_child_by_name(&self, name: &str) -> Option<&TreeNode> {

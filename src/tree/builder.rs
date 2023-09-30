@@ -24,10 +24,6 @@ impl TreeBuilder {
         }
     }
 
-    pub fn use_full_path(&self) -> bool {
-        self.use_full_path
-    }
-
     pub fn initialize_chunks(
         &mut self,
         filter: Option<&str>,

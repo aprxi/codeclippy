@@ -47,12 +47,10 @@ impl TreeNode {
         self.children_mut().push(child);
     }
 
-    pub fn print(&self, config: PrintConfig) -> bool {
-        let mut printed_methods = HashSet::new();
-
+    pub fn print(&self, config: PrintConfig, as_tree: bool) -> bool {
         if !self.should_print(&config) {
             // despite not printing this node, it may still have children
-            return self.print_children(&config, &mut printed_methods);
+            return self.print_children(&config, as_tree);
         }
         if let Some(linked_node) = &self.link {
             return self.print_linked_node(linked_node, &config);
@@ -63,34 +61,28 @@ impl TreeNode {
             custom_println(config.depth(), &format!("[{}]", full_path));
         }
 
-        match &self.rtype {
-            RustType::Function(rust_function) => {
-                self.print_function(&config, rust_function)
+        if as_tree {
+            match &self.rtype {
+                RustType::Function(rust_function) => {
+                    self.print_function(&config, rust_function)
+                }
+                RustType::Struct(rust_struct) => {
+                    self.print_struct(&config, rust_struct);
+                }
+                RustType::Enum(_) => self.print_enum(&config),
+                RustType::Trait(_) => self.print_trait(&config),
             }
-            RustType::Struct(rust_struct) => {
-                self.print_struct(&config, &mut printed_methods, rust_struct);
-            }
-            RustType::Enum(_) => self.print_enum(&config),
-            RustType::Trait(_) => self.print_trait(&config),
+        } else {
+            self.rtype.print();
         }
-
-        self.print_children(&config, &mut printed_methods);
         true // any of the print_ functions will print something
     }
 
-    fn print_children(
-        &self,
-        config: &PrintConfig,
-        printed_methods: &mut HashSet<String>,
-    ) -> bool {
+    fn print_children(&self, config: &PrintConfig, as_tree: bool) -> bool {
         let mut has_printed = false;
 
         if let Some(children) = &self.children {
             for child in children {
-                if printed_methods.contains(&child.name) {
-                    continue;
-                }
-
                 let child_depth =
                     match (config.depth(), &self.rtype, &child.rtype) {
                         (0, _, _) => 0,
@@ -103,23 +95,14 @@ impl TreeNode {
                 let mut child_config = config.clone();
                 child_config.set_depth(child_depth);
                 child_config.add_to_path(child.name.clone());
-                let child_printed = child.print(child_config);
+                let child_printed = child.print(child_config, as_tree);
                 has_printed = has_printed || child_printed;
-
-                if matches!(child.rtype, RustType::Function(_)) {
-                    printed_methods.insert(child.name.clone());
-                }
             }
         }
         has_printed
     }
 
-    fn print_struct(
-        &self,
-        config: &PrintConfig,
-        printed_methods: &mut HashSet<String>,
-        rust_struct: &RustStruct,
-    ) {
+    fn print_struct(&self, config: &PrintConfig, rust_struct: &RustStruct) {
         custom_println(
             config.depth(),
             &format!("{} @{}#Struct", self.name, self.id),
@@ -157,8 +140,7 @@ impl TreeNode {
                             .use_full_path(config.use_full_path())
                             .build();
 
-                        child.print(child_config);
-                        printed_methods.insert(child.name.clone());
+                        child.print(child_config, true);
                     }
                 }
             }
@@ -203,7 +185,7 @@ impl TreeNode {
             .use_full_path(config.use_full_path())
             .build();
 
-        linked_node.print(linked_config)
+        linked_node.print(linked_config, true)
     }
 
     fn print_function(

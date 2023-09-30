@@ -61,6 +61,10 @@ impl Identifiable for RustStruct {
     fn name(&self) -> &str {
         &self.name
     }
+
+    fn print(&self) {
+        println!("{}", self);
+    }
 }
 
 impl fmt::Display for RustStruct {

@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
 
@@ -18,6 +20,10 @@ impl Identifiable for RustEnum {
     fn name(&self) -> &str {
         &self.name
     }
+
+    fn print(&self) {
+        println!("{}", self);
+    }
 }
 
 impl RustEnum {
@@ -34,5 +40,27 @@ impl RustEnum {
             variants,
             methods,
         }
+    }
+}
+
+impl Display for RustEnum {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut variants = String::new();
+        for (variant, fields) in &self.variants {
+            let mut fields = fields.join(", ");
+            if !fields.is_empty() {
+                fields = format!("({})", fields);
+            }
+            variants.push_str(&format!("{}{}\n", variant, fields));
+        }
+        let mut methods = String::new();
+        for method in &self.methods {
+            methods.push_str(&format!("{}\n", method));
+        }
+        write!(
+            f,
+            "{}enum {} {{\n{}\n}}\n{}",
+            self.visibility, self.name, variants, methods
+        )
     }
 }

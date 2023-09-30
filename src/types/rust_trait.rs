@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
 
@@ -18,6 +20,10 @@ impl Identifiable for RustTrait {
     fn name(&self) -> &str {
         &self.name
     }
+
+    fn print(&self) {
+        println!("{}", self);
+    }
 }
 
 impl RustTrait {
@@ -34,5 +40,19 @@ impl RustTrait {
             methods,
             implementors,
         }
+    }
+}
+
+impl Display for RustTrait {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let mut methods = String::new();
+        for method in &self.methods {
+            methods.push_str(&format!("{}\n", method));
+        }
+        write!(
+            f,
+            "{}trait {} {{\n{}\n}}",
+            self.visibility, self.name, methods
+        )
     }
 }

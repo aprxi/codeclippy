@@ -98,6 +98,10 @@ impl Identifiable for RustFunction {
     fn name(&self) -> &str {
         &self.name
     }
+
+    fn print(&self) {
+        println!("{}", self);
+    }
 }
 
 impl std::fmt::Debug for RustFunction {

@@ -11,6 +11,7 @@ pub enum RustType {
 pub trait Identifiable {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
+    fn print(&self);
 }
 
 impl Identifiable for RustType {
@@ -29,6 +30,15 @@ impl Identifiable for RustType {
             RustType::Struct(strct) => strct.name(),
             RustType::Enum(enu) => enu.name(),
             RustType::Trait(trt) => trt.name(),
+        }
+    }
+
+    fn print(&self) {
+        match self {
+            RustType::Function(func) => func.print(),
+            RustType::Struct(strct) => strct.print(),
+            RustType::Enum(enu) => enu.print(),
+            RustType::Trait(trt) => trt.print(),
         }
     }
 }
