@@ -6,7 +6,8 @@ use syn::{File, ImplItem, Item, TraitItem};
 
 use crate::helpers::generate_id;
 use crate::types::{
-    RustEnum, RustFunction, RustImpl, RustStruct, RustTrait, Visibility,
+    Identifiable, RustEnum, RustFunction, RustImpl, RustStruct, RustTrait,
+    Visibility,
 };
 
 #[derive(Debug, Clone)]
@@ -78,8 +79,10 @@ impl RustFileVisitor {
 
     fn associate_methods_with_enums(&mut self) {
         for rust_impl in &self.impls {
-            if let Some(e) =
-                self.enums.iter_mut().find(|e| e.name == rust_impl.for_type)
+            if let Some(e) = self
+                .enums
+                .iter_mut()
+                .find(|e| e.name() == rust_impl.for_type)
             {
                 e.methods.extend_from_slice(&rust_impl.functions);
             }
@@ -152,13 +155,12 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                         (variant.ident.to_string(), associated_data)
                     })
                     .collect::<Vec<_>>();
-                let rust_enum = RustEnum {
-                    id: generate_id(&enum_item.ident.to_string()),
-                    visibility: visibility_to_local_version(&enum_item.vis),
-                    name: enum_item.ident.to_string(),
+                let rust_enum = RustEnum::new_with_data(
+                    enum_item.ident.to_string(),
+                    visibility_to_local_version(&enum_item.vis),
                     variants,
-                    methods: vec![],
-                };
+                    vec![],
+                );
                 self.enums.push(rust_enum);
             }
             Item::Trait(trait_item) => {
@@ -178,13 +180,12 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                         }
                     })
                     .collect::<Vec<_>>();
-                let rust_trait = RustTrait {
-                    id: generate_id(&trait_item.ident.to_string()),
-                    visibility: visibility_to_local_version(&trait_item.vis),
-                    name: trait_item.ident.to_string(),
+                let rust_trait = RustTrait::new_with_data(
+                    trait_item.ident.to_string(),
+                    visibility_to_local_version(&trait_item.vis),
                     methods,
-                    implementors: vec![],
-                };
+                    vec![],
+                );
                 self.traits.push(rust_trait);
             }
             _ => {}
@@ -247,10 +248,9 @@ fn extract_function(
         syn::ReturnType::Type(_, ty) => Some(ty.to_token_stream().to_string()),
     };
 
-    RustFunction::new_with_details(
-        &generate_id(&sig.ident.to_string()),
-        vis.map_or(Visibility::Restricted, visibility_to_local_version),
+    RustFunction::new_with_data(
         &sig.ident.to_string(),
+        vis.map_or(Visibility::Restricted, visibility_to_local_version),
         inputs_vec,
         output_option,
         source,

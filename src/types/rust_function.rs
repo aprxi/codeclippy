@@ -10,12 +10,13 @@ use syn::visit::Visit;
 use super::format::pretty_code_fmt;
 use super::{Identifiable, Visibility};
 use crate::function_visitor::FunctionCallVisitor;
+use crate::helpers::generate_id;
 
 #[derive(Clone)]
 pub struct RustFunction {
     id: String,
-    visibility: Visibility,
     name: String,
+    visibility: Visibility,
     inputs: Vec<(String, String)>,
     output: Option<String>,
     source: Option<String>,
@@ -25,11 +26,11 @@ pub struct RustFunction {
 }
 
 impl RustFunction {
-    pub fn new(id: &str, visibility: Visibility, name: &str) -> Self {
+    pub fn new(visibility: Visibility, name: &str) -> Self {
         Self {
-            id: id.to_string(),
-            visibility,
+            id: generate_id(name),
             name: name.to_string(),
+            visibility,
             inputs: Vec::new(),
             output: None,
             source: None,
@@ -39,19 +40,18 @@ impl RustFunction {
         }
     }
 
-    pub fn new_with_details(
-        id: &str,
-        visibility: Visibility,
+    pub fn new_with_data(
         name: &str,
+        visibility: Visibility,
         inputs: Vec<(String, String)>,
         output: Option<String>,
         source: Option<String>,
         block: Option<Box<syn::Block>>,
     ) -> Self {
         Self {
-            id: id.to_string(),
-            visibility,
+            id: generate_id(name),
             name: name.to_string(),
+            visibility,
             inputs,
             output,
             source,

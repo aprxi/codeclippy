@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use syn::visit::Visit;
 
-use crate::helpers::generate_id;
 use crate::types::{RustFunction, Visibility};
 
 pub struct FunctionCallVisitor {
@@ -16,11 +15,8 @@ impl<'ast> Visit<'ast> for FunctionCallVisitor {
             if let Some(last_segment) = expr_path.path.segments.last() {
                 let function_name = last_segment.ident.to_string();
                 self.instantiated_items.insert(function_name.clone());
-                let called_function = RustFunction::new(
-                    &generate_id(&function_name),
-                    Visibility::Restricted,
-                    &function_name,
-                );
+                let called_function =
+                    RustFunction::new(Visibility::Restricted, &function_name);
                 self.functions.push(called_function);
             }
         }

@@ -7,8 +7,8 @@ use super::{Identifiable, RustFunction, Visibility};
 #[derive(Debug, Clone)]
 pub struct RustStruct {
     id: String,
-    visibility: Visibility,
     name: String,
+    visibility: Visibility,
     fields: Vec<(String, String)>,
     methods: Vec<RustFunction>,
 }
@@ -17,8 +17,8 @@ impl RustStruct {
     pub fn new(id: &str, visibility: Visibility, name: &str) -> Self {
         Self {
             id: id.to_string(),
-            visibility,
             name: name.to_string(),
+            visibility,
             fields: Vec::new(),
             methods: Vec::new(),
         }
