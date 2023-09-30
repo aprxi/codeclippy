@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use log;
 
 use super::TreeNode;
-use crate::types::{RustType, RustStruct};
+use crate::types::RustType;
 
 pub struct Dependencies {
     items_by_id: HashMap<String, Dependency>,
@@ -51,17 +51,10 @@ impl Dependencies {
         );
 
         match dependency.node().rtype() {
-            RustType::Function => {
-                let _ = dependency.node().function.as_ref().map_or(
-                    (),
-                    |function| {
-                        println!("{}", function);
-                    },
-                );
+            RustType::Function(rust_function) => {
+                println!("{}", rust_function);
             }
-            RustType::Struct => {
-                let rust_struct: &RustStruct =
-                    dependency.node().rust_struct.as_ref().unwrap();
+            RustType::Struct(rust_struct) => {
                 println!("{}", rust_struct);
             }
             _ => {

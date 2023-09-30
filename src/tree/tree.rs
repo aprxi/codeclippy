@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::types::{RustType, RustFunction, RustStruct};
+use crate::types::{RustFunction, RustStruct, RustType};
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
@@ -9,8 +9,6 @@ pub struct TreeNode {
     name: String,
     rtype: RustType,
     children: Option<Vec<TreeNode>>,
-    pub function: Option<RustFunction>,
-    pub rust_struct: Option<RustStruct>,
     pub link: Option<Box<TreeNode>>,
 }
 
@@ -21,8 +19,6 @@ impl TreeNode {
             name: name.into(),
             rtype,
             children: None,
-            function: None,
-            rust_struct: None,
             link: None,
         }
     }
@@ -37,6 +33,10 @@ impl TreeNode {
 
     pub fn rtype(&self) -> &RustType {
         &self.rtype
+    }
+
+    pub fn rtype_mut(&mut self) -> &mut RustType {
+        &mut self.rtype
     }
 
     pub fn children_mut(&mut self) -> &mut Vec<TreeNode> {
@@ -64,9 +64,11 @@ impl TreeNode {
         }
 
         match &self.rtype {
-            RustType::Function => self.print_function(&config),
-            RustType::Struct => {
-                self.print_struct(&config, &mut printed_methods);
+            RustType::Function(rust_function) => {
+                self.print_function(&config, rust_function)
+            }
+            RustType::Struct(rust_struct) => {
+                self.print_struct(&config, &mut printed_methods, rust_struct);
             }
             RustType::Enum => self.print_enum(&config),
             RustType::Trait => self.print_trait(&config),
@@ -94,7 +96,7 @@ impl TreeNode {
                 let child_depth =
                     match (config.depth(), &self.rtype, &child.rtype) {
                         (0, _, _) => 0,
-                        (_, &RustType::Function, &RustType::Function) => {
+                        (_, &RustType::Function(_), &RustType::Function(_)) => {
                             config.depth()
                         }
                         _ => config.depth() + 1,
@@ -106,7 +108,7 @@ impl TreeNode {
                 let child_printed = child.print(child_config);
                 has_printed = has_printed || child_printed;
 
-                if matches!(child.rtype, RustType::Function) {
+                if matches!(child.rtype, RustType::Function(_)) {
                     printed_methods.insert(child.name.clone());
                 }
             }
@@ -118,32 +120,31 @@ impl TreeNode {
         &self,
         config: &PrintConfig,
         printed_methods: &mut HashSet<String>,
+        rust_struct: &RustStruct,
     ) {
         custom_println(
             config.depth(),
             &format!("{} @{}#Struct", self.name, self.id),
         );
 
-        if let Some(rust_struct) = &self.rust_struct {
-            if !rust_struct.fields().is_empty() {
-                custom_println(config.depth() + 1, "Fields:");
-                for (name, type_) in rust_struct.fields() {
-                    custom_println(
-                        config.depth() + 2,
-                        &format!("{}: {}", name, type_),
-                    );
-                }
+        if !rust_struct.fields().is_empty() {
+            custom_println(config.depth() + 1, "Fields:");
+            for (name, type_) in rust_struct.fields() {
+                custom_println(
+                    config.depth() + 2,
+                    &format!("{}: {}", name, type_),
+                );
             }
         }
 
         if let Some(children) = &self.children {
             if children
                 .iter()
-                .any(|child| matches!(child.rtype, RustType::Function))
+                .any(|child| matches!(child.rtype, RustType::Function(_)))
             {
                 custom_println(config.depth() + 1, "Methods:");
                 for child in children {
-                    if matches!(child.rtype, RustType::Function) {
+                    if matches!(child.rtype, RustType::Function(_)) {
                         let child_config = PrintConfigBuilder::new()
                             .depth(config.depth() + 2)
                             .filter(config.filter().clone())
@@ -207,36 +208,32 @@ impl TreeNode {
         linked_node.print(linked_config)
     }
 
-    fn print_function(&self, config: &PrintConfig) {
-        if let Some(function_data) = &self.function {
-            let inputs: Vec<String> = function_data
-                .inputs()
-                .iter()
-                .map(|(name, type_)| format!("{}: {}", name, type_))
-                .collect();
-            let output = function_data
-                .output()
-                .as_ref()
-                .map_or_else(String::new, |output_type| {
-                    format!(" -> {}", output_type)
-                });
-            custom_println(
-                config.depth(),
-                &format!(
-                    "{}({}){} @{}",
-                    self.name,
-                    inputs.join(", "),
-                    output,
-                    self.id
-                ),
-            );
-        } else {
-            // no function data found -- just print function
-            custom_println(
-                config.depth(),
-                &format!("{}() @{}", self.name, self.id),
-            );
-        }
+    fn print_function(
+        &self,
+        config: &PrintConfig,
+        rust_function: &RustFunction,
+    ) {
+        let inputs: Vec<String> = rust_function
+            .inputs()
+            .iter()
+            .map(|(name, type_)| format!("{}: {}", name, type_))
+            .collect();
+        let output = rust_function
+            .output()
+            .as_ref()
+            .map_or_else(String::new, |output_type| {
+                format!(" -> {}", output_type)
+            });
+        custom_println(
+            config.depth(),
+            &format!(
+                "{}({}){} @{}",
+                self.name,
+                inputs.join(", "),
+                output,
+                self.id
+            ),
+        );
     }
 
     fn print_enum(&self, config: &PrintConfig) {

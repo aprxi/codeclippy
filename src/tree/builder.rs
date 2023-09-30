@@ -7,7 +7,7 @@ use crate::file_visitor::RustFileVisitor;
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
 use crate::registry::{GlobalRegistry, RegistryKind};
 use crate::tree::{Dependencies, RootNode, TreeNode};
-use crate::types::{RustType, RustStruct};
+use crate::types::{RustStruct, RustType};
 
 pub struct TreeBuilder {
     visitors: Vec<RustFileVisitor>,
@@ -53,7 +53,11 @@ impl TreeBuilder {
         chunks
     }
 
-    pub fn link_dependencies(
+    pub fn add_dependencies(&self, root: &mut RootNode, config: &PrintConfig) {
+        find_dependencies(root, &self.global_registry, config);
+    }
+
+    fn link_dependencies(
         &mut self,
         chunks: &mut Vec<RootNode>,
         filter: Option<&str>,
@@ -94,10 +98,6 @@ impl TreeBuilder {
                 );
             }
         }
-    }
-
-    pub fn add_dependencies(&self, root: &mut RootNode, config: &PrintConfig) {
-        find_dependencies(root, &self.global_registry, config);
     }
 }
 
@@ -181,10 +181,8 @@ fn find_dependencies_recursive(
 }
 
 fn process_function_node(tree: &mut TreeNode) {
-    if let RustType::Function = tree.rtype() {
-        if let Some(func) = &mut tree.function {
-            func.extract_function_body();
-        }
+    if let RustType::Function(rust_function) = tree.rtype_mut() {
+        rust_function.extract_function_body();
     }
 }
 
@@ -198,52 +196,62 @@ fn collect_dependencies(
     log::debug!("Collecting dependencies for node: {}", tree.name());
     let mut nodes_to_add = Vec::new();
 
-    if let Some(func) = &tree.function {
-        // node is a function
-        log::debug!("Function: {}", func.name());
+    match &tree.rtype() {
+        RustType::Function(rust_function) => {
+            // List of all instantiated structs from the function
+            let instantiated_struct_names: Vec<_> =
+                rust_function.instantiated_items().iter().cloned().collect();
 
-        // List of all instantiated structs from the function
-        let instantiated_struct_names: Vec<_> =
-            func.instantiated_items().iter().cloned().collect();
-
-        for name in &instantiated_struct_names {
-            // Check if the struct exists in local items
-            if let Some(local_item) = local_items_map.get(name) {
-                let node = (*local_item).clone();
-                let source = config.path().first().map(|s| s.as_str());
-                dependencies.register_item(
-                    node.id().to_string(),
-                    node.clone(),
-                    source,
-                );
-                nodes_to_add.push(convert_to_linknode(node));
+            for name in &instantiated_struct_names {
+                // Check if the struct exists in local items
+                if let Some(local_item) = local_items_map.get(name) {
+                    let node = (*local_item).clone();
+                    let source = config.path().first().map(|s| s.as_str());
+                    dependencies.register_item(
+                        node.id().to_string(),
+                        node.clone(),
+                        source,
+                    );
+                    nodes_to_add.push(convert_to_linknode(node));
+                }
+                // If not in the local items, try global registry
+                else if let Some(registry_item) =
+                    global_registry.get_item_by_name(name)
+                {
+                    let RegistryKind::Struct(rust_struct) =
+                        &registry_item.item();
+                    let node = create_struct_node_from_registry(rust_struct);
+                    dependencies.register_item(
+                        node.id().to_string(),
+                        node.clone(),
+                        registry_item.source(),
+                    );
+                    nodes_to_add.push(convert_to_linknode(node));
+                }
             }
-            // If not in the local items, try global registry
-            else if let Some(registry_item) =
-                global_registry.get_item_by_name(name)
-            {
-                let RegistryKind::Struct(rust_struct) = &registry_item.item();
-                let node = create_struct_node_from_registry(rust_struct);
-                dependencies.register_item(
-                    node.id().to_string(),
-                    node.clone(),
-                    registry_item.source(),
-                );
-                nodes_to_add.push(convert_to_linknode(node));
-            }
+        }
+        RustType::Struct(rust_struct) => {
+            log::warn!(
+                "Dependencies of struct: {} not yet handled",
+                rust_struct.name()
+            );
+        }
+        _ => {
+            // currently just support functions and structs
+            panic!("Unhandled RustType variant: {:?}", tree.rtype());
         }
     }
     nodes_to_add
 }
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
-    let mut node = TreeNode::new(s.id(), s.name(), RustType::Struct);
-
-    node.rust_struct = Some(s.clone());
-
+    let mut node = TreeNode::new(s.id(), s.name(), RustType::Struct(s.clone()));
     for method in s.methods() {
-        let method_node =
-            TreeNode::new(method.id(), method.name(), RustType::Function);
+        let method_node = TreeNode::new(
+            method.id(),
+            method.name(),
+            RustType::Function(method.clone()),
+        );
         node.add_child(method_node);
     }
 

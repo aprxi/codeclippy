@@ -7,10 +7,10 @@ pub use rust_function::RustFunction;
 pub use rust_struct::RustStruct;
 pub use visibility::Visibility;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub enum RustType {
-    Function,
-    Struct,
+    Function(RustFunction),
+    Struct(RustStruct),
     Enum,
     Trait,
     Variant,

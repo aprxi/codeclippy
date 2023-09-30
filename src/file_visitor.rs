@@ -9,7 +9,6 @@ use crate::types::{
     RustEnum, RustFunction, RustImpl, RustStruct, RustTrait, Visibility,
 };
 
-
 #[derive(Debug, Clone)]
 pub struct RustFileVisitor {
     current_file: String,
@@ -73,7 +72,6 @@ impl RustFileVisitor {
                 .find(|struct_item| struct_item.name() == rust_impl.for_type)
             {
                 struct_to_update.add_methods(rust_impl.functions.clone());
-
             }
         }
     }
