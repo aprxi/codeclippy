@@ -26,11 +26,11 @@ fn map_files_in_directory_recursive(
                     maxdepth.map(|depth| depth - 1),
                 ));
             } else if path.extension().unwrap_or_default() == "rs" {
-                let relative_path = path.strip_prefix(base_directory).unwrap_or(&path);
+                let relative_path =
+                    path.strip_prefix(base_directory).unwrap_or(&path);
                 file_map.push(relative_path.display().to_string());
             }
         }
     }
     file_map
 }
-

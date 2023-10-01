@@ -25,3 +25,4 @@ env_logger = "0.10"
 log = "0.4"
 clap = { version = "4.2" , default-features = false, features = ["std", "help"]}
 prettyplease = "0.2"
+arboard = { version = "3.2", default-features = false }

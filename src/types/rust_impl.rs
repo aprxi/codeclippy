@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use super::{Identifiable, RustFunction};
+use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub struct RustImpl {
@@ -18,8 +19,8 @@ impl Identifiable for RustImpl {
         &self.for_type
     }
 
-    fn print(&self) {
-        println!("{}", self);
+    fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
+        let _ = writeln!(writer, "{}", self);
     }
 }
 

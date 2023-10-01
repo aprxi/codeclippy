@@ -9,9 +9,10 @@ use syn::visit::Visit;
 
 use super::format::pretty_code_fmt;
 use super::{Identifiable, Visibility};
-use crate::localfs::FilePath;
 use crate::function_visitor::FunctionCallVisitor;
 use crate::helpers::generate_id;
+use crate::localfs::FilePath;
+use crate::writers::ClippyWriter;
 
 #[derive(Clone)]
 pub struct RustFunction {
@@ -100,8 +101,8 @@ impl Identifiable for RustFunction {
         &self.name
     }
 
-    fn print(&self) {
-        println!("{}", self);
+    fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
+        let _ = writeln!(writer, "{}", self);
     }
 }
 
@@ -163,7 +164,10 @@ impl fmt::Display for RustFunction {
         // Write function body
         if let Some(file_path) = &self.file_path {
             let real_path = file_path.real_path();
-            match print_extracted_code(&self.block.as_ref().unwrap(), &real_path) {
+            match print_extracted_code(
+                &self.block.as_ref().unwrap(),
+                &real_path,
+            ) {
                 Ok(code) => {
                     write!(&mut formatted, "{}\n", code)?;
                     pretty_code_fmt(&mut formatted);

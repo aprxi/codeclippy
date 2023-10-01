@@ -1,6 +1,6 @@
-
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
 use crate::types::{Identifiable, RustFunction, RustStruct, RustType};
+use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub struct TreeNode {
@@ -46,13 +46,18 @@ impl TreeNode {
         self.children_mut().push(child);
     }
 
-    pub fn print(&self, config: PrintConfig, as_tree: bool) -> bool {
+    pub fn print(
+        &self,
+        writer: &mut Box<dyn ClippyWriter>,
+        config: PrintConfig,
+        as_tree: bool,
+    ) -> bool {
         if !self.should_print(&config) {
             // despite not printing this node, it may still have children
-            return self.print_children(&config, as_tree);
+            return self.print_children(writer, &config, as_tree);
         }
         if let Some(linked_node) = &self.link {
-            return self.print_linked_node(linked_node, &config);
+            return self.print_linked_node(writer, linked_node, &config);
         }
 
         if config.debug() {
@@ -66,18 +71,23 @@ impl TreeNode {
                     self.print_function(&config, rust_function)
                 }
                 RustType::Struct(rust_struct) => {
-                    self.print_struct(&config, rust_struct);
+                    self.print_struct(writer, &config, rust_struct);
                 }
                 RustType::Enum(_) => self.print_enum(&config),
                 RustType::Trait(_) => self.print_trait(&config),
             }
         } else {
-            self.rtype.print();
+            self.rtype.print(writer);
         }
         true // any of the print_ functions will print something
     }
 
-    fn print_children(&self, config: &PrintConfig, as_tree: bool) -> bool {
+    fn print_children(
+        &self,
+        writer: &mut Box<dyn ClippyWriter>,
+        config: &PrintConfig,
+        as_tree: bool,
+    ) -> bool {
         let mut has_printed = false;
 
         if let Some(children) = &self.children {
@@ -94,14 +104,19 @@ impl TreeNode {
                 let mut child_config = config.clone();
                 child_config.set_depth(child_depth);
                 child_config.add_to_path(child.name.clone());
-                let child_printed = child.print(child_config, as_tree);
+                let child_printed = child.print(writer, child_config, as_tree);
                 has_printed = has_printed || child_printed;
             }
         }
         has_printed
     }
 
-    fn print_struct(&self, config: &PrintConfig, rust_struct: &RustStruct) {
+    fn print_struct(
+        &self,
+        writer: &mut Box<dyn ClippyWriter>,
+        config: &PrintConfig,
+        rust_struct: &RustStruct,
+    ) {
         custom_println(
             config.depth(),
             &format!("{} @{}#Struct", self.name, self.id),
@@ -139,7 +154,7 @@ impl TreeNode {
                             .use_full_path(config.use_full_path())
                             .build();
 
-                        child.print(child_config, true);
+                        child.print(writer, child_config, true);
                     }
                 }
             }
@@ -167,6 +182,7 @@ impl TreeNode {
 
     fn print_linked_node(
         &self,
+        writer: &mut Box<dyn ClippyWriter>,
         linked_node: &TreeNode,
         config: &PrintConfig,
     ) -> bool {
@@ -184,7 +200,7 @@ impl TreeNode {
             .use_full_path(config.use_full_path())
             .build();
 
-        linked_node.print(linked_config, true)
+        linked_node.print(writer, linked_config, true)
     }
 
     fn print_function(

@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
+use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub struct RustEnum {
@@ -21,8 +22,8 @@ impl Identifiable for RustEnum {
         &self.name
     }
 
-    fn print(&self) {
-        println!("{}", self);
+    fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
+        let _ = writeln!(writer, "{}", self);
     }
 }
 

@@ -3,10 +3,13 @@ use std::path::Path;
 use crate::file_visitor::RustFileVisitor;
 use crate::localfs::map_files_in_directory;
 use crate::tree::TreeBuilder;
+use crate::writers::ClippyWriter;
 
-pub fn source_map(
+pub fn list_map(
     directory: &str,
     filter: Option<&str>,
+    writer: &mut Box<dyn ClippyWriter>,
+    show_dependencies: bool,
     maxdepth: Option<usize>,
 ) {
     let base_directory = Path::new(directory);
@@ -15,7 +18,8 @@ pub fn source_map(
     let file_paths: Vec<&str> = file_map.iter().map(AsRef::as_ref).collect();
 
     // load file contents
-    let visitors = RustFileVisitor::read_files(base_directory, file_paths).unwrap();
+    let visitors =
+        RustFileVisitor::read_files(base_directory, file_paths).unwrap();
 
     let use_full_path = if let Some(filter) = filter {
         let first_element = filter.split("::").next().unwrap_or("");
@@ -25,20 +29,17 @@ pub fn source_map(
         false
     };
 
-    // TODO: currently default on based on filter used, we may want to make
-    // this a cli option
-    let link_dependencies = filter.is_some();
-
+    let link_dependencies = show_dependencies && filter.is_some();
     let mut builder = TreeBuilder::new(visitors, use_full_path);
     let file_chunks = builder.initialize_chunks(filter, link_dependencies);
 
     for root in &file_chunks {
-        root.print(filter, use_full_path);
+        root.print(writer, filter, use_full_path);
 
-        if root.dependencies().len() > 0 {
+        if show_dependencies && root.dependencies().len() > 0 {
             println!("Source: {}", root.file_path().relative_path());
             println!("Dependencies:");
-            root.dependencies().print();
+            root.dependencies().print(writer);
         }
     }
 }

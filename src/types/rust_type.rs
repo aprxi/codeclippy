@@ -1,4 +1,5 @@
 use super::{RustEnum, RustFunction, RustStruct, RustTrait};
+use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub enum RustType {
@@ -11,7 +12,7 @@ pub enum RustType {
 pub trait Identifiable {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
-    fn print(&self);
+    fn print(&self, writer: &mut Box<dyn ClippyWriter>);
 }
 
 impl Identifiable for RustType {
@@ -33,12 +34,12 @@ impl Identifiable for RustType {
         }
     }
 
-    fn print(&self) {
+    fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
         match self {
-            RustType::Function(func) => func.print(),
-            RustType::Struct(strct) => strct.print(),
-            RustType::Enum(enu) => enu.print(),
-            RustType::Trait(trt) => trt.print(),
+            RustType::Function(func) => func.print(writer),
+            RustType::Struct(strct) => strct.print(writer),
+            RustType::Enum(enu) => enu.print(writer),
+            RustType::Trait(trt) => trt.print(writer),
         }
     }
 }

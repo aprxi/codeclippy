@@ -1,11 +1,12 @@
 use std::fs;
 use std::path::Path;
+
 use syn::__private::ToTokens;
 use syn::visit::Visit;
 use syn::{File, ImplItem, Item, TraitItem};
 
-use crate::localfs::FilePath;
 use crate::helpers::generate_id;
+use crate::localfs::FilePath;
 use crate::types::{
     Identifiable, RustEnum, RustFunction, RustImpl, RustStruct, RustTrait,
     Visibility,

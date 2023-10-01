@@ -2,6 +2,7 @@ use super::dependencies::Dependencies;
 use super::TreeNode;
 use crate::localfs::FilePath;
 use crate::print_config::PrintConfigBuilder;
+use crate::writers::ClippyWriter;
 
 pub struct RootNode {
     file_path: FilePath,
@@ -38,7 +39,12 @@ impl RootNode {
         &mut self.children
     }
 
-    pub fn print(&self, filter: Option<&str>, use_full_path: bool) {
+    pub fn print(
+        &self,
+        writer: &mut Box<dyn ClippyWriter>,
+        filter: Option<&str>,
+        use_full_path: bool,
+    ) {
         // if no filter is defined, print as a tree
         let as_tree = !filter.is_some();
 
@@ -54,7 +60,7 @@ impl RootNode {
                 .use_full_path(use_full_path)
                 .build();
 
-            child.print(config, as_tree);
+            child.print(writer, config, as_tree);
         }
     }
 

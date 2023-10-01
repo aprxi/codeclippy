@@ -15,11 +15,14 @@ impl FilePath {
     }
 
     pub fn real_path(&self) -> String {
-        self.base_directory.join(&self.relative_path).to_str().expect("Invalid UTF-8 in path").to_string()
+        self.base_directory
+            .join(&self.relative_path)
+            .to_str()
+            .expect("Invalid UTF-8 in path")
+            .to_string()
     }
 
     pub fn relative_path(&self) -> String {
         self.relative_path.to_str().unwrap().to_string()
     }
 }
-

@@ -4,6 +4,7 @@ use log;
 
 use super::TreeNode;
 use crate::types::RustType;
+use crate::writers::ClippyWriter;
 
 pub struct Dependencies {
     items_by_id: HashMap<String, Dependency>,
@@ -36,14 +37,20 @@ impl Dependencies {
         self.items_by_id.len()
     }
 
-    pub fn print(&self) {
+    pub fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
         for (id, dependency) in &self.items_by_id {
-            self.print_dependency(id, dependency);
+            self.print_dependency(writer, id, dependency);
         }
     }
 
-    fn print_dependency(&self, id: &String, dependency: &Dependency) {
-        println!(
+    fn print_dependency(
+        &self,
+        writer: &mut Box<dyn ClippyWriter>,
+        id: &String,
+        dependency: &Dependency,
+    ) {
+        let _ = writeln!(
+            writer,
             "{},{},{}",
             id,
             dependency.node().name(),
@@ -52,10 +59,10 @@ impl Dependencies {
 
         match dependency.node().rtype() {
             RustType::Function(rust_function) => {
-                println!("{}", rust_function);
+                let _ = writeln!(writer, "{}", rust_function);
             }
             RustType::Struct(rust_struct) => {
-                println!("{}", rust_struct);
+                let _ = writeln!(writer, "{}", rust_struct);
             }
             _ => {
                 log::error!(
