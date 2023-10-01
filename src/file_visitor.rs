@@ -1,9 +1,10 @@
 use std::fs;
-
+use std::path::Path;
 use syn::__private::ToTokens;
 use syn::visit::Visit;
 use syn::{File, ImplItem, Item, TraitItem};
 
+use crate::localfs::FilePath;
 use crate::helpers::generate_id;
 use crate::types::{
     Identifiable, RustEnum, RustFunction, RustImpl, RustStruct, RustTrait,
@@ -12,7 +13,7 @@ use crate::types::{
 
 #[derive(Debug, Clone)]
 pub struct RustFileVisitor {
-    current_file: String,
+    file_path: FilePath,
     pub functions: Vec<RustFunction>,
     pub structs: Vec<RustStruct>,
     pub enums: Vec<RustEnum>,
@@ -21,9 +22,9 @@ pub struct RustFileVisitor {
 }
 
 impl RustFileVisitor {
-    pub fn new(file_name: String) -> Self {
+    pub fn new(file_path: FilePath) -> Self {
         RustFileVisitor {
-            current_file: file_name,
+            file_path,
             functions: Vec::new(),
             structs: Vec::new(),
             enums: Vec::new(),
@@ -32,20 +33,22 @@ impl RustFileVisitor {
         }
     }
 
-    pub fn current_file(&self) -> String {
-        self.current_file.clone()
+    pub fn file_path(&self) -> &FilePath {
+        &self.file_path
     }
 }
 
 impl RustFileVisitor {
     pub fn read_files(
-        file_paths: Vec<&str>,
+        base_directory: &Path,
+        relative_paths: Vec<&str>,
     ) -> Result<Vec<RustFileVisitor>, Box<dyn std::error::Error>> {
         let mut visitors = Vec::new();
 
-        for file_path in file_paths {
-            let content = fs::read_to_string(file_path)?;
-            let mut visitor = RustFileVisitor::new(file_path.to_string());
+        for path in relative_paths {
+            let file_path = FilePath::new(base_directory, Path::new(path));
+            let content = fs::read_to_string(file_path.real_path())?;
+            let mut visitor = RustFileVisitor::new(file_path);
             let syntax_tree: File = syn::parse_file(&content)?;
             visitor.visit_file(&syntax_tree);
             // associate methods with their structs and enums
@@ -108,14 +111,12 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
         if let Item::Impl(impl_item) = item {
             self.visit_item_impl(impl_item);
         }
-        let source_file = self.current_file();
-
         match item {
             Item::Fn(func) => {
                 let rust_function = extract_function(
                     &func.sig,
                     Some(&func.vis),
-                    Some(source_file),
+                    Some(self.file_path().clone()),
                     Some(func.block.clone()),
                 );
                 self.functions.push(rust_function);
@@ -195,15 +196,13 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
     fn visit_item_impl(&mut self, impl_item: &'ast syn::ItemImpl) {
         let for_type = format!("{}", impl_item.self_ty.to_token_stream());
 
-        let source_file = self.current_file();
-
         let mut functions = Vec::new();
         for item in &impl_item.items {
             if let ImplItem::Fn(func) = item {
                 let rust_function = extract_function(
                     &func.sig,
                     Some(&func.vis),
-                    Some(source_file.clone()),
+                    Some(self.file_path().clone()),
                     Some(Box::new(func.block.clone())),
                 );
                 functions.push(rust_function.clone());
@@ -222,7 +221,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
 fn extract_function(
     sig: &syn::Signature,
     vis: Option<&syn::Visibility>,
-    source: Option<String>,
+    file_path: Option<FilePath>,
     block: Option<Box<syn::Block>>,
 ) -> RustFunction {
     let inputs_vec = sig
@@ -253,7 +252,7 @@ fn extract_function(
         vis.map_or(Visibility::Restricted, visibility_to_local_version),
         inputs_vec,
         output_option,
-        source,
+        file_path,
         block,
     )
 }

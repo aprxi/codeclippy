@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::file_visitor::RustFileVisitor;
-use crate::files::map_files_in_directory;
+use crate::localfs::map_files_in_directory;
 use crate::tree::TreeBuilder;
 
 pub fn source_map(
@@ -9,17 +9,21 @@ pub fn source_map(
     filter: Option<&str>,
     maxdepth: Option<usize>,
 ) {
-    let project_directory = Path::new(directory);
-    let file_map = map_files_in_directory(project_directory, maxdepth);
+    let base_directory = Path::new(directory);
+    let file_map = map_files_in_directory(base_directory, maxdepth);
+    // collect relative paths from base_directory
     let file_paths: Vec<&str> = file_map.iter().map(AsRef::as_ref).collect();
 
     // load file contents
-    let visitors = RustFileVisitor::read_files(file_paths).unwrap();
+    let visitors = RustFileVisitor::read_files(base_directory, file_paths).unwrap();
 
-    // TODO: setting to true allows internal pub statements having the same
-    // name. However, linking part still needs to be fixed for this to set to
-    // true permanently
-    let use_full_path = false;
+    let use_full_path = if let Some(filter) = filter {
+        let first_element = filter.split("::").next().unwrap_or("");
+        let real_path = base_directory.join(first_element);
+        real_path.exists()
+    } else {
+        false
+    };
 
     // TODO: currently default on based on filter used, we may want to make
     // this a cli option
@@ -31,9 +35,8 @@ pub fn source_map(
     for root in &file_chunks {
         root.print(filter, use_full_path);
 
-        // TODO: print only dependencies based on ID
         if root.dependencies().len() > 0 {
-            println!("Source: {}", root.filename());
+            println!("Source: {}", root.file_path().relative_path());
             println!("Dependencies:");
             root.dependencies().print();
         }

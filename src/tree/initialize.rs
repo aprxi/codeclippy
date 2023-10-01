@@ -20,7 +20,7 @@ impl<'a> ChunkInitializer<'a> {
         &mut self,
         global_registry: &mut GlobalRegistry,
     ) -> RootNode {
-        let mut root = RootNode::new(self.visitor.current_file());
+        let mut root = RootNode::new(self.visitor.file_path().clone());
         let mut visited = HashSet::new();
 
         self.add_functions(&mut root, &mut visited);
@@ -60,7 +60,7 @@ impl<'a> ChunkInitializer<'a> {
             if *rust_struct.visibility() == Visibility::Public {
                 global_registry.register_struct(
                     rust_struct.clone(),
-                    Some(root.filename()),
+                    Some(root.file_path().relative_path().as_str()),
                 );
             }
         }

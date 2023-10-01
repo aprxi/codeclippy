@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
 use crate::types::{Identifiable, RustFunction, RustStruct, RustType};
@@ -153,14 +152,14 @@ impl TreeNode {
         let filter_path = if config.use_full_path() {
             current_path
         } else {
-            // skip first element (filename)
+            // remove first element (filename) in case search is not
+            // scoped to single file
             current_path
                 .split("::")
                 .skip(1)
                 .collect::<Vec<&str>>()
                 .join("::")
         };
-
         config.filter().as_deref().map_or(true, |f| {
             filter_path.starts_with(f) || self.name().starts_with(f)
         })

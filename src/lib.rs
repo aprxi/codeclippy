@@ -1,5 +1,5 @@
 pub(crate) mod file_visitor;
-pub(crate) mod files;
+pub(crate) mod localfs;
 pub(crate) mod function_visitor;
 pub(crate) mod helpers;
 pub(crate) mod map;

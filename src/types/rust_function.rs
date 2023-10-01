@@ -9,6 +9,7 @@ use syn::visit::Visit;
 
 use super::format::pretty_code_fmt;
 use super::{Identifiable, Visibility};
+use crate::localfs::FilePath;
 use crate::function_visitor::FunctionCallVisitor;
 use crate::helpers::generate_id;
 
@@ -19,7 +20,7 @@ pub struct RustFunction {
     visibility: Visibility,
     inputs: Vec<(String, String)>,
     output: Option<String>,
-    source: Option<String>,
+    file_path: Option<FilePath>,
     block: Option<Box<syn::Block>>,
     functions: Vec<RustFunction>,
     instantiated_items: HashSet<String>,
@@ -33,7 +34,7 @@ impl RustFunction {
             visibility,
             inputs: Vec::new(),
             output: None,
-            source: None,
+            file_path: None,
             block: None,
             functions: Vec::new(),
             instantiated_items: HashSet::new(),
@@ -45,7 +46,7 @@ impl RustFunction {
         visibility: Visibility,
         inputs: Vec<(String, String)>,
         output: Option<String>,
-        source: Option<String>,
+        file_path: Option<FilePath>,
         block: Option<Box<syn::Block>>,
     ) -> Self {
         Self {
@@ -54,7 +55,7 @@ impl RustFunction {
             visibility,
             inputs,
             output,
-            source,
+            file_path,
             block,
             functions: Vec::new(),
             instantiated_items: HashSet::new(),
@@ -160,8 +161,9 @@ impl fmt::Display for RustFunction {
         write!(&mut formatted, "\n")?;
 
         // Write function body
-        if let Some(source) = &self.source {
-            match print_extracted_code(&self.block.as_ref().unwrap(), &source) {
+        if let Some(file_path) = &self.file_path {
+            let real_path = file_path.real_path();
+            match print_extracted_code(&self.block.as_ref().unwrap(), &real_path) {
                 Ok(code) => {
                     write!(&mut formatted, "{}\n", code)?;
                     pretty_code_fmt(&mut formatted);

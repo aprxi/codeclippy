@@ -1,24 +1,25 @@
 use super::dependencies::Dependencies;
 use super::TreeNode;
+use crate::localfs::FilePath;
 use crate::print_config::PrintConfigBuilder;
 
 pub struct RootNode {
-    filename: String,
+    file_path: FilePath,
     dependencies: Dependencies,
     children: Vec<TreeNode>,
 }
 
 impl RootNode {
-    pub fn new(filename: String) -> Self {
+    pub fn new(file_path: FilePath) -> Self {
         RootNode {
-            filename,
+            file_path,
             dependencies: Dependencies::default(),
             children: Vec::new(),
         }
     }
 
-    pub fn filename(&self) -> &str {
-        &self.filename
+    pub fn file_path(&self) -> &FilePath {
+        &self.file_path
     }
 
     pub fn dependencies(&self) -> &Dependencies {
@@ -46,7 +47,7 @@ impl RootNode {
                 .depth(1)
                 .filter(filter.map(|s| s.to_string()))
                 .path(vec![
-                    self.filename().to_string(),
+                    self.file_path.relative_path().to_string(),
                     child.name().to_string(),
                 ])
                 .is_linked(false)

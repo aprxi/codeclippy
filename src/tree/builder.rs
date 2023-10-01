@@ -29,7 +29,6 @@ impl TreeBuilder {
         filter: Option<&str>,
         link_dependencies: bool,
     ) -> Vec<RootNode> {
-        let validate = !self.use_full_path;
         let mut chunks: Vec<RootNode> = self
             .visitors
             .iter_mut()
@@ -39,7 +38,7 @@ impl TreeBuilder {
             })
             .collect();
 
-        if validate {
+        if !self.use_full_path {
             self.validate_chunks_for_conflicts(&chunks, filter);
         }
 
@@ -64,7 +63,7 @@ impl TreeBuilder {
                 let config = PrintConfigBuilder::new()
                     .depth(0)
                     .filter(Some(filter_str.to_string()))
-                    .path(vec![root.filename().to_string()])
+                    .path(vec![root.file_path().relative_path().to_string()])
                     .is_linked(false)
                     .use_full_path(use_full_path)
                     .build();
