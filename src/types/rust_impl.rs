@@ -1,13 +1,24 @@
 use std::fmt::{Display, Formatter};
 
 use super::{Identifiable, RustFunction};
+use crate::helpers::generate_id;
 use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub struct RustImpl {
-    pub id: String,
+    id: String,
     pub for_type: String,
     pub functions: Vec<RustFunction>,
+}
+
+impl RustImpl {
+    pub fn new_with_data(for_type: String, functions: Vec<RustFunction>) -> Self {
+        RustImpl {
+            id: generate_id(&for_type),
+            for_type,
+            functions,
+        }
+    }
 }
 
 impl Identifiable for RustImpl {
@@ -20,7 +31,7 @@ impl Identifiable for RustImpl {
     }
 
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
-        let _ = writeln!(writer, "{}", self);
+        let _ = write!(writer, "{}", self);
     }
 }
 

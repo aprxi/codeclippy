@@ -181,7 +181,6 @@ fn collect_dependencies(
     config: &PrintConfig,
 ) {
     log::debug!("Collecting dependencies for node: {}", tree.name());
-
     match &tree.rtype() {
         RustType::Function(rust_function) => {
             // List of all instantiated structs from the function
@@ -189,6 +188,10 @@ fn collect_dependencies(
                 rust_function.instantiated_items().iter().cloned().collect();
 
             for name in &instantiated_struct_names {
+                // if name is in config.path, skip as cant depend on self
+                if config.path().contains(&name) {
+                    continue;
+                }
                 // Check if the struct exists in local items
                 if let Some(local_item) = local_items_map.get(name) {
                     let node = (*local_item).clone();

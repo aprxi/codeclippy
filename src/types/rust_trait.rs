@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 
+use crate::writers::ClippyWriter;
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
-use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub struct RustTrait {
@@ -23,7 +23,7 @@ impl Identifiable for RustTrait {
     }
 
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
-        let _ = writeln!(writer, "{}", self);
+        let _ = write!(writer, "{}", self);
     }
 }
 

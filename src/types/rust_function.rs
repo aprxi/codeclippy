@@ -102,7 +102,7 @@ impl Identifiable for RustFunction {
     }
 
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
-        let _ = writeln!(writer, "{}", self);
+        let _ = write!(writer, "{}", self);
     }
 }
 

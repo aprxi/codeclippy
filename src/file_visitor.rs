@@ -98,7 +98,6 @@ impl RustFileVisitor {
         self.associate_methods_with_enums();
     }
 
-    #[allow(dead_code)]
     fn print_items<T: std::fmt::Debug>(label: &str, items: &[T]) {
         println!("\n{}:", label);
         for item in items {
@@ -196,6 +195,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
 
     fn visit_item_impl(&mut self, impl_item: &'ast syn::ItemImpl) {
         let for_type = format!("{}", impl_item.self_ty.to_token_stream());
+        log::error!("impl for type: {}", for_type);
 
         let mut functions = Vec::new();
         for item in &impl_item.items {
@@ -210,11 +210,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
             }
         }
 
-        let rust_impl = RustImpl {
-            id: generate_id(&for_type),
-            for_type,
-            functions,
-        };
+        let rust_impl = RustImpl::new_with_data(for_type, functions);
         self.impls.push(rust_impl);
     }
 }

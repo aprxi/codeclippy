@@ -59,16 +59,16 @@ impl Dependencies {
 
         match dependency.node().rtype() {
             RustType::Function(rust_function) => {
-                let _ = writeln!(writer, "{}", rust_function);
+                let _ = write!(writer, "{}", rust_function);
             }
             RustType::Struct(rust_struct) => {
-                let _ = writeln!(writer, "{}", rust_struct);
+                let _ = write!(writer, "{}", rust_struct);
             }
-            _ => {
-                log::error!(
-                    "not supported yet: {:?}",
-                    dependency.node().rtype()
-                );
+            RustType::Enum(rust_enum) => {
+                let _ = write!(writer, "{}", rust_enum);
+            }
+            RustType::Trait(rust_trait) => {
+                let _ = write!(writer, "{}", rust_trait);
             }
         }
     }
