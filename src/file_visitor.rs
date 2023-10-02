@@ -195,7 +195,6 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
 
     fn visit_item_impl(&mut self, impl_item: &'ast syn::ItemImpl) {
         let for_type = format!("{}", impl_item.self_ty.to_token_stream());
-        log::error!("impl for type: {}", for_type);
 
         let mut functions = Vec::new();
         for item in &impl_item.items {

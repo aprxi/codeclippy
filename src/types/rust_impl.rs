@@ -12,7 +12,10 @@ pub struct RustImpl {
 }
 
 impl RustImpl {
-    pub fn new_with_data(for_type: String, functions: Vec<RustFunction>) -> Self {
+    pub fn new_with_data(
+        for_type: String,
+        functions: Vec<RustFunction>,
+    ) -> Self {
         RustImpl {
             id: generate_id(&for_type),
             for_type,

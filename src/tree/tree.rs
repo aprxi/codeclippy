@@ -176,7 +176,10 @@ impl TreeNode {
                 .join("::")
         };
         config.filter().as_deref().map_or(true, |f| {
-            filter_path == f || (filter_path.starts_with(f) && filter_path[f.len()..].starts_with("::")) || self.name() == f
+            filter_path == f
+                || (filter_path.starts_with(f)
+                    && filter_path[f.len()..].starts_with("::"))
+                || self.name() == f
         })
     }
 

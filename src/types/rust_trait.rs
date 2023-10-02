@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 
-use crate::writers::ClippyWriter;
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
+use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
 pub struct RustTrait {
