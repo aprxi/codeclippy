@@ -8,7 +8,11 @@ pub fn handle_ls(ls_matches: &clap::ArgMatches) {
         .map(ToString::to_string);
 
     let show_dependencies =
-        *ls_matches.get_one::<bool>("deps").unwrap_or(&false);
+        *ls_matches.get_one::<bool>("depends-on").unwrap_or(&false);
+
+    // TODO - implement
+    let _show_dependents =
+        *ls_matches.get_one::<bool>("used-by").unwrap_or(&false);
 
     let target_uri = ls_matches
         .get_one::<String>("clip")

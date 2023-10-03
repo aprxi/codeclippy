@@ -16,10 +16,17 @@ pub fn ls_subcommand() -> Command {
              'foo.*', '.*bar'",
         ))
         .arg(
-            Arg::new("deps")
-                .long("deps")
+            Arg::new("depends-on")
+                .long("depends-on")
                 .short('d')
                 .help("Include dependencies in the output.")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("used-by")
+                .long("used-by")
+                .short('u')
+                .help("Include dependents in the output.")
                 .action(ArgAction::SetTrue),
         )
         .arg(
