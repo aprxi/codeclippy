@@ -61,7 +61,6 @@ impl TreeBuilder {
         for mut root in chunks {
             if let Some(filter_str) = filter {
                 let config = PrintConfigBuilder::new()
-                    .depth(0)
                     .filter(Some(filter_str.to_string()))
                     .path(vec![root.file_path().relative_path().to_string()])
                     .is_linked(false)

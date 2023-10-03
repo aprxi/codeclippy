@@ -75,14 +75,6 @@ impl RustFunction {
         &self.name
     }
 
-    pub fn inputs(&self) -> &Vec<(String, String)> {
-        &self.inputs
-    }
-
-    pub fn output(&self) -> &Option<String> {
-        &self.output
-    }
-
     pub fn functions(&self) -> &Vec<RustFunction> {
         &self.functions
     }

@@ -2,7 +2,6 @@ use std::env;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrintConfig {
-    depth: usize,
     filter: Option<String>,
     path: Vec<String>,
     debug: bool,
@@ -11,20 +10,12 @@ pub struct PrintConfig {
 }
 
 impl PrintConfig {
-    pub fn depth(&self) -> usize {
-        self.depth
-    }
-
     pub fn filter(&self) -> &Option<String> {
         &self.filter
     }
 
     pub fn path(&self) -> &Vec<String> {
         &self.path
-    }
-
-    pub fn debug(&self) -> bool {
-        self.debug
     }
 
     pub fn is_linked(&self) -> bool {
@@ -35,18 +26,12 @@ impl PrintConfig {
         self.use_full_path
     }
 
-    pub fn set_depth(&mut self, depth: usize) {
-        self.depth = depth;
-    }
-
     pub fn add_to_path(&mut self, name: String) {
         self.path.push(name);
-        self.depth += 1;
     }
 }
 
 pub struct PrintConfigBuilder {
-    depth: usize,
     filter: Option<String>,
     path: Vec<String>,
     debug: bool,
@@ -62,18 +47,12 @@ impl PrintConfigBuilder {
         };
 
         PrintConfigBuilder {
-            depth: 0,
             filter: None,
             path: Vec::new(),
             debug,
             is_linked: false,
             use_full_path: false,
         }
-    }
-
-    pub fn depth(mut self, depth: usize) -> Self {
-        self.depth = depth;
-        self
     }
 
     pub fn filter(mut self, filter: Option<String>) -> Self {
@@ -98,7 +77,6 @@ impl PrintConfigBuilder {
 
     pub fn build(self) -> PrintConfig {
         PrintConfig {
-            depth: self.depth,
             filter: self.filter,
             path: self.path,
             debug: self.debug,

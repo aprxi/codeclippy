@@ -1,5 +1,5 @@
 use crate::print_config::{PrintConfig, PrintConfigBuilder};
-use crate::types::{Identifiable, RustFunction, RustStruct, RustType};
+use crate::types::{Identifiable, RustType};
 use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
@@ -50,35 +50,16 @@ impl TreeNode {
         &self,
         writer: &mut Box<dyn ClippyWriter>,
         config: PrintConfig,
-        as_tree: bool,
     ) -> bool {
         if !self.should_print(&config) {
             // despite not printing this node, it may still have children
-            return self.print_children(writer, &config, as_tree);
+            return self.print_children(writer, &config);
         }
         if let Some(linked_node) = &self.link {
             return self.print_linked_node(writer, linked_node, &config);
         }
 
-        if config.debug() {
-            let full_path = config.path().join("::");
-            custom_println(config.depth(), &format!("[{}]", full_path));
-        }
-
-        if as_tree {
-            match &self.rtype {
-                RustType::Function(rust_function) => {
-                    self.print_function(&config, rust_function)
-                }
-                RustType::Struct(rust_struct) => {
-                    self.print_struct(writer, &config, rust_struct);
-                }
-                RustType::Enum(_) => self.print_enum(&config),
-                RustType::Trait(_) => self.print_trait(&config),
-            }
-        } else {
-            self.rtype.print(writer);
-        }
+        self.rtype.print(writer);
         true // any of the print_ functions will print something
     }
 
@@ -86,79 +67,19 @@ impl TreeNode {
         &self,
         writer: &mut Box<dyn ClippyWriter>,
         config: &PrintConfig,
-        as_tree: bool,
     ) -> bool {
         let mut has_printed = false;
 
         if let Some(children) = &self.children {
             for child in children {
-                let child_depth =
-                    match (config.depth(), &self.rtype, &child.rtype) {
-                        (0, _, _) => 0,
-                        (_, &RustType::Function(_), &RustType::Function(_)) => {
-                            config.depth()
-                        }
-                        _ => config.depth() + 1,
-                    };
 
                 let mut child_config = config.clone();
-                child_config.set_depth(child_depth);
                 child_config.add_to_path(child.name.clone());
-                let child_printed = child.print(writer, child_config, as_tree);
+                let child_printed = child.print(writer, child_config);
                 has_printed = has_printed || child_printed;
             }
         }
         has_printed
-    }
-
-    fn print_struct(
-        &self,
-        writer: &mut Box<dyn ClippyWriter>,
-        config: &PrintConfig,
-        rust_struct: &RustStruct,
-    ) {
-        custom_println(
-            config.depth(),
-            &format!("struct {}", self.name),
-        );
-
-        if !rust_struct.fields().is_empty() {
-            custom_println(config.depth() + 1, "Fields:");
-            for (name, type_) in rust_struct.fields() {
-                custom_println(
-                    config.depth() + 2,
-                    &format!("{}: {}", name, type_),
-                );
-            }
-        }
-
-        if let Some(children) = &self.children {
-            if children
-                .iter()
-                .any(|child| matches!(child.rtype, RustType::Function(_)))
-            {
-                custom_println(config.depth() + 1, "Methods:");
-                for child in children {
-                    if matches!(child.rtype, RustType::Function(_)) {
-                        let child_config = PrintConfigBuilder::new()
-                            .depth(config.depth() + 2)
-                            .filter(config.filter().clone())
-                            .path(
-                                [
-                                    config.path().clone(),
-                                    vec![child.name.clone()],
-                                ]
-                                .concat(),
-                            )
-                            .is_linked(config.is_linked())
-                            .use_full_path(config.use_full_path())
-                            .build();
-
-                        child.print(writer, child_config, true);
-                    }
-                }
-            }
-        }
     }
 
     pub fn should_print(&self, config: &PrintConfig) -> bool {
@@ -196,58 +117,12 @@ impl TreeNode {
         }
 
         let linked_config = PrintConfigBuilder::new()
-            .depth(config.depth())
             .filter(None)
             .path(vec![linked_node.name.clone()])
             .is_linked(true)
             .use_full_path(config.use_full_path())
             .build();
 
-        linked_node.print(writer, linked_config, true)
-    }
-
-    fn print_function(
-        &self,
-        config: &PrintConfig,
-        rust_function: &RustFunction,
-    ) {
-        let inputs: Vec<String> = rust_function
-            .inputs()
-            .iter()
-            .map(|(name, type_)| format!("{}: {}", name, type_))
-            .collect();
-        let output = rust_function
-            .output()
-            .as_ref()
-            .map_or_else(String::new, |output_type| {
-                format!(" -> {}", output_type)
-            });
-        custom_println(
-            config.depth(),
-            &format!(
-                "fn {}({}){}",
-                self.name,
-                inputs.join(", "),
-                output,
-            ),
-        );
-    }
-
-    fn print_enum(&self, config: &PrintConfig) {
-        custom_println(config.depth(), &format!("enum {}", self.name));
-    }
-
-    fn print_trait(&self, config: &PrintConfig) {
-        custom_println(config.depth(), &format!("trait {}", self.name));
-    }
-}
-
-fn custom_println(depth: usize, message: &str) {
-    match depth {
-        0..=1 => println!("{}", message),
-        _ => {
-            let padding = (0..depth - 2).map(|_| "│   ").collect::<String>();
-            println!("{}└── {}", padding, message);
-        }
+        linked_node.print(writer, linked_config)
     }
 }

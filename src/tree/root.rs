@@ -46,12 +46,8 @@ impl RootNode {
         use_full_path: bool,
 
     ) {
-        // if no filter is defined, print as a tree
-        let as_tree = !filter.is_some();
-
         for child in self.children() {
             let config = PrintConfigBuilder::new()
-                .depth(1)
                 .filter(filter.map(|s| s.to_string()))
                 .path(vec![
                     self.file_path.relative_path().to_string(),
@@ -61,7 +57,7 @@ impl RootNode {
                 .use_full_path(use_full_path)
                 .build();
 
-            child.print(writer, config, as_tree);
+            child.print(writer, config);
         }
     }
 

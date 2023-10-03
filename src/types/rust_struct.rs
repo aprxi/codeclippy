@@ -37,10 +37,6 @@ impl RustStruct {
         &self.name
     }
 
-    pub fn fields(&self) -> &Vec<(String, String)> {
-        &self.fields
-    }
-
     pub fn methods(&self) -> &Vec<RustFunction> {
         &self.methods
     }
