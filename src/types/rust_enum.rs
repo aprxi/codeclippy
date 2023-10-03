@@ -1,5 +1,8 @@
 use std::fmt::{Display, Formatter};
+use std::fmt;
+use std::fmt::Write;
 
+use super::format::pretty_code_fmt;
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
 use crate::writers::ClippyWriter;
@@ -7,10 +10,10 @@ use crate::writers::ClippyWriter;
 #[derive(Debug, Clone)]
 pub struct RustEnum {
     id: String,
-    pub visibility: Visibility,
+    visibility: Visibility,
     name: String,
-    pub variants: Vec<(String, Vec<String>)>,
-    pub methods: Vec<RustFunction>,
+    variants: Vec<(String, Vec<String>)>,
+    methods: Vec<RustFunction>,
 }
 
 impl Identifiable for RustEnum {
@@ -32,36 +35,51 @@ impl RustEnum {
         name: String,
         visibility: Visibility,
         variants: Vec<(String, Vec<String>)>,
-        methods: Vec<RustFunction>,
     ) -> Self {
         RustEnum {
             id: generate_id(&name),
             name,
             visibility,
             variants,
-            methods,
+            methods: Vec::new(),
         }
+    }
+
+    pub fn add_methods(&mut self, methods: Vec<RustFunction>) {
+        self.methods.extend(methods);
     }
 }
 
 impl Display for RustEnum {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut variants = String::new();
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut enum_str = String::new();
+
+        let visibility = if self.visibility.to_string().is_empty() {
+            String::from("")
+        } else {
+            format!("{} ", self.visibility)
+        };
+        write!(&mut enum_str, "{}enum {} {{\n", visibility, self.name)?;
+
         for (variant, fields) in &self.variants {
-            let mut fields = fields.join(", ");
-            if !fields.is_empty() {
-                fields = format!("({})", fields);
+            let fields_str = if fields.is_empty() {
+                String::from("")
+            } else {
+                format!("({})", fields.join(", "))
+            };
+            write!(&mut enum_str, "    {}{},\n", variant, fields_str)?;
+        }
+        write!(&mut enum_str, "}}\n")?;
+
+        if !self.methods.is_empty() {
+            write!(&mut enum_str, "impl {} {{\n", self.name)?;
+            for method in &self.methods {
+                write!(&mut enum_str, "    {}\n", method)?;
             }
-            variants.push_str(&format!("{}{}\n", variant, fields));
+            write!(&mut enum_str, "}}\n")?;
         }
-        let mut methods = String::new();
-        for method in &self.methods {
-            methods.push_str(&format!("{}\n", method));
-        }
-        write!(
-            f,
-            "{}enum {} {{\n{}\n}}\n{}",
-            self.visibility, self.name, variants, methods
-        )
+
+        pretty_code_fmt(&mut enum_str);
+        write!(f, "{}", enum_str)
     }
 }

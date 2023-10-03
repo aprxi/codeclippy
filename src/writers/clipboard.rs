@@ -26,6 +26,11 @@ impl ClippyWriter for ClipboardWriter {
             .set_text(current_text)
             .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
     }
+
+    // buffer is consumed by default
+    fn get_buffer(&self) -> Option<&Vec<u8>> {
+        None
+    }
 }
 
 impl Write for ClipboardWriter {

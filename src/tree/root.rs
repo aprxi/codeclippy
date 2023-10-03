@@ -44,6 +44,7 @@ impl RootNode {
         writer: &mut Box<dyn ClippyWriter>,
         filter: Option<&str>,
         use_full_path: bool,
+
     ) {
         // if no filter is defined, print as a tree
         let as_tree = !filter.is_some();

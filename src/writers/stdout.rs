@@ -15,6 +15,11 @@ impl ClippyWriter for StdoutWriter {
         println!("{}", s);
         Ok(())
     }
+
+    // buffer is consumed by default
+    fn get_buffer(&self) -> Option<&Vec<u8>> {
+        None
+    }
 }
 
 impl Write for StdoutWriter {

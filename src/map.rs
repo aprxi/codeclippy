@@ -3,7 +3,7 @@ use std::path::Path;
 use crate::file_visitor::RustFileVisitor;
 use crate::localfs::map_files_in_directory;
 use crate::tree::TreeBuilder;
-use crate::writers::ClippyWriter;
+use crate::writers::{BufferedWriter, ClippyWriter};
 
 pub fn list_map(
     directory: &str,
@@ -34,11 +34,21 @@ pub fn list_map(
     let file_chunks = builder.initialize_chunks(filter, link_dependencies);
 
     for root in &file_chunks {
-        root.print(writer, filter, use_full_path);
+        let mut buffered_writer: Box<dyn ClippyWriter> =
+            Box::new(BufferedWriter::new());
+        root.print(&mut buffered_writer, filter, use_full_path);
+
+        if let Some(buffered_data) = buffered_writer.get_buffer() {
+            let buffered_str = String::from_utf8_lossy(buffered_data);
+            let _ = writeln!(
+                writer,
+                "@{}:\n{}",
+                root.file_path().relative_path(),
+                buffered_str
+            );
+        }
 
         if show_dependencies && root.dependencies().len() > 0 {
-            println!("Source: {}", root.file_path().relative_path());
-            println!("Dependencies:");
             root.dependencies().print(writer);
         }
     }

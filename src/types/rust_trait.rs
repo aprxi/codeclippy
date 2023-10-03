@@ -1,16 +1,18 @@
 use std::fmt::{Display, Formatter};
+use std::fmt;
+use std::fmt::Write;
 
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
 use crate::writers::ClippyWriter;
+use super::format::pretty_code_fmt;
 
 #[derive(Debug, Clone)]
 pub struct RustTrait {
     id: String,
-    pub visibility: Visibility,
+    visibility: Visibility,
     name: String,
-    pub methods: Vec<RustFunction>,
-    pub implementors: Vec<String>,
+    methods: Vec<RustFunction>,
 }
 
 impl Identifiable for RustTrait {
@@ -32,28 +34,36 @@ impl RustTrait {
         name: String,
         visibility: Visibility,
         methods: Vec<RustFunction>,
-        implementors: Vec<String>,
     ) -> Self {
         RustTrait {
             id: generate_id(&name),
             name,
             visibility,
             methods,
-            implementors,
         }
+    }
+
+    pub fn methods(&self) -> &Vec<RustFunction> {
+        &self.methods
     }
 }
 
 impl Display for RustTrait {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut methods = String::new();
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let mut trait_str = String::new();
+
+        let visibility = if self.visibility.to_string().is_empty() {
+            String::from("")
+        } else {
+            format!("{} ", self.visibility)
+        };
+        write!(&mut trait_str, "{}trait {} {{\n", visibility, self.name)?;
+
         for method in &self.methods {
-            methods.push_str(&format!("{}\n", method));
+            write!(&mut trait_str, "    {}", method)?;
         }
-        write!(
-            f,
-            "{}trait {} {{\n{}\n}}",
-            self.visibility, self.name, methods
-        )
+        write!(&mut trait_str, "}}\n")?;
+        pretty_code_fmt(&mut trait_str);
+        write!(f, "{}", trait_str)
     }
 }

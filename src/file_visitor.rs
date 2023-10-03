@@ -60,15 +60,6 @@ impl RustFileVisitor {
         Ok(visitors)
     }
 
-    #[allow(dead_code)]
-    pub fn print_collected_data(&self) {
-        Self::print_items("Functions", &self.functions);
-        Self::print_items("Structs", &self.structs);
-        Self::print_items("Enums", &self.enums);
-        Self::print_items("Traits", &self.traits);
-        Self::print_items("Impls", &self.impls);
-    }
-
     fn associate_methods_with_structs(&mut self) {
         for rust_impl in &self.impls {
             if let Some(struct_to_update) = self
@@ -83,12 +74,12 @@ impl RustFileVisitor {
 
     fn associate_methods_with_enums(&mut self) {
         for rust_impl in &self.impls {
-            if let Some(e) = self
+            if let Some(enum_to_update) = self
                 .enums
                 .iter_mut()
-                .find(|e| e.name() == rust_impl.for_type)
+                .find(|enum_item| enum_item.name() == rust_impl.for_type)
             {
-                e.methods.extend_from_slice(&rust_impl.functions);
+                enum_to_update.add_methods(rust_impl.functions.clone());
             }
         }
     }
@@ -96,13 +87,6 @@ impl RustFileVisitor {
     fn associate_methods(&mut self) {
         self.associate_methods_with_structs();
         self.associate_methods_with_enums();
-    }
-
-    fn print_items<T: std::fmt::Debug>(label: &str, items: &[T]) {
-        println!("\n{}:", label);
-        for item in items {
-            println!("{:?}", item);
-        }
     }
 }
 
@@ -160,21 +144,20 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                     enum_item.ident.to_string(),
                     visibility_to_local_version(&enum_item.vis),
                     variants,
-                    vec![],
                 );
                 self.enums.push(rust_enum);
             }
             Item::Trait(trait_item) => {
-                let methods = trait_item
+                let trait_methods = trait_item
                     .items
                     .iter()
                     .filter_map(|item| {
-                        if let TraitItem::Fn(method) = item {
+                        if let TraitItem::Fn(func) = item {
                             Some(extract_function(
-                                &method.sig,
+                                &func.sig,
                                 None,
-                                None,
-                                None,
+                                Some(self.file_path().clone()),
+                                func.default.clone().map(Box::new),
                             ))
                         } else {
                             None
@@ -184,8 +167,7 @@ impl<'ast> Visit<'ast> for RustFileVisitor {
                 let rust_trait = RustTrait::new_with_data(
                     trait_item.ident.to_string(),
                     visibility_to_local_version(&trait_item.vis),
-                    methods,
-                    vec![],
+                    trait_methods,
                 );
                 self.traits.push(rust_trait);
             }
@@ -224,8 +206,24 @@ fn extract_function(
         .inputs
         .iter()
         .map(|arg| match arg {
-            syn::FnArg::Receiver(_) => ("self".into(), "".into()),
+            syn::FnArg::Receiver(rec) => {
+                // self argument
+                let mut self_arg = String::new();
+                if let Some((_, ref lifetime)) = rec.reference {
+                    self_arg.push_str("&");
+                    if let Some(lifetime) = lifetime {
+                        self_arg.push_str(&lifetime.to_string());
+                        self_arg.push(' ');
+                    }
+                }
+                if rec.mutability.is_some() {
+                    self_arg.push_str("mut ");
+                }
+                self_arg.push_str("self");
+                (self_arg, "".into())
+            },
             syn::FnArg::Typed(pat_type) => {
+                // regular argument
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
                     (
                         pat_ident.ident.to_string(),

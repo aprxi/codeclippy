@@ -141,7 +141,7 @@ fn create_enum_node(e: &RustEnum) -> TreeNode {
 
 fn create_trait_node(t: &RustTrait) -> TreeNode {
     let mut node = TreeNode::new(RustType::Trait(t.clone()));
-    for method in &t.methods {
+    for method in t.methods() {
         let method_node = TreeNode::new(RustType::Function(method.clone()));
         node.add_child(method_node);
     }

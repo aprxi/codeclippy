@@ -164,17 +164,20 @@ impl fmt::Display for RustFunction {
         // Write function body
         if let Some(file_path) = &self.file_path {
             let real_path = file_path.real_path();
-            match print_extracted_code(
-                &self.block.as_ref().unwrap(),
-                &real_path,
-            ) {
-                Ok(code) => {
-                    write!(&mut formatted, "{}\n", code)?;
-                    pretty_code_fmt(&mut formatted);
+            if let Some(ref block) = self.block {
+                match print_extracted_code(block, &real_path) {
+                    Ok(code) => {
+                        write!(&mut formatted, "{}\n", code)?;
+                        pretty_code_fmt(&mut formatted);
+                    }
+                    Err(_) => write!(&mut formatted, "Error extracting code")?,
                 }
-                Err(_) => write!(&mut formatted, "Error extracting code")?,
+            } else {
+                // no function body
+                write!(&mut formatted, ";")?;
             }
         }
+
         // Write the final formatted string to the formatter
         write!(f, "{}", formatted)
     }

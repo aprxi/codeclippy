@@ -119,7 +119,7 @@ impl TreeNode {
     ) {
         custom_println(
             config.depth(),
-            &format!("{} @{}#Struct", self.name, self.id),
+            &format!("struct {}", self.name),
         );
 
         if !rust_struct.fields().is_empty() {
@@ -225,21 +225,20 @@ impl TreeNode {
         custom_println(
             config.depth(),
             &format!(
-                "{}({}){} @{}",
+                "fn {}({}){}",
                 self.name,
                 inputs.join(", "),
                 output,
-                self.id
             ),
         );
     }
 
     fn print_enum(&self, config: &PrintConfig) {
-        custom_println(config.depth(), &format!("{} (Enum)", self.name));
+        custom_println(config.depth(), &format!("enum {}", self.name));
     }
 
     fn print_trait(&self, config: &PrintConfig) {
-        custom_println(config.depth(), &format!("{} (Trait)", self.name));
+        custom_println(config.depth(), &format!("trait {}", self.name));
     }
 }
 

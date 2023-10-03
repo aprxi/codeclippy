@@ -38,24 +38,17 @@ impl Dependencies {
     }
 
     pub fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
-        for (id, dependency) in &self.items_by_id {
-            self.print_dependency(writer, id, dependency);
+        for (_, dependency) in &self.items_by_id {
+            self.print_dependency(writer, dependency);
         }
     }
 
     fn print_dependency(
         &self,
         writer: &mut Box<dyn ClippyWriter>,
-        id: &String,
         dependency: &Dependency,
     ) {
-        let _ = writeln!(
-            writer,
-            "{},{},{}",
-            id,
-            dependency.node().name(),
-            dependency.source().unwrap_or(""),
-        );
+        let _ = writeln!(writer, "@{}:", dependency.source().unwrap_or(""),);
 
         match dependency.node().rtype() {
             RustType::Function(rust_function) => {
