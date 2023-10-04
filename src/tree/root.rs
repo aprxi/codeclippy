@@ -44,7 +44,6 @@ impl RootNode {
         writer: &mut Box<dyn ClippyWriter>,
         filter: Option<&str>,
         use_full_path: bool,
-
     ) {
         for child in self.children() {
             let config = PrintConfigBuilder::new()

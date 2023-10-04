@@ -1,11 +1,10 @@
-use std::fmt::{Display, Formatter};
 use std::fmt;
-use std::fmt::Write;
+use std::fmt::{Display, Formatter, Write};
 
+use super::format::pretty_code_fmt;
 use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
 use crate::writers::ClippyWriter;
-use super::format::pretty_code_fmt;
 
 #[derive(Debug, Clone)]
 pub struct RustTrait {
@@ -26,6 +25,10 @@ impl Identifiable for RustTrait {
 
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
         let _ = write!(writer, "{}", self);
+    }
+
+    fn visibility(&self) -> bool {
+        self.visibility == Visibility::Public
     }
 }
 

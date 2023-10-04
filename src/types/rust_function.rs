@@ -67,10 +67,6 @@ impl RustFunction {
         &self.id
     }
 
-    pub fn visibility(&self) -> &Visibility {
-        &self.visibility
-    }
-
     pub fn name(&self) -> &str {
         &self.name
     }
@@ -95,6 +91,10 @@ impl Identifiable for RustFunction {
 
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
         let _ = write!(writer, "{}", self);
+    }
+
+    fn visibility(&self) -> bool {
+        self.visibility == Visibility::Public
     }
 }
 

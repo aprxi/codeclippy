@@ -4,7 +4,7 @@ use crate::file_visitor::RustFileVisitor;
 use crate::registry::GlobalRegistry;
 use crate::tree::{RootNode, TreeNode};
 use crate::types::{
-    RustEnum, RustFunction, RustStruct, RustTrait, RustType, Visibility,
+    Identifiable, RustEnum, RustFunction, RustStruct, RustTrait, RustType,
 };
 
 pub struct ChunkInitializer<'a> {
@@ -57,7 +57,7 @@ impl<'a> ChunkInitializer<'a> {
                 rust_struct,
                 visited,
             ));
-            if *rust_struct.visibility() == Visibility::Public {
+            if rust_struct.visibility() {
                 global_registry.register_struct(
                     rust_struct.clone(),
                     Some(root.file_path().relative_path().as_str()),

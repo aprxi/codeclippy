@@ -13,6 +13,7 @@ pub trait Identifiable {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
     fn print(&self, writer: &mut Box<dyn ClippyWriter>);
+    fn visibility(&self) -> bool;
 }
 
 impl Identifiable for RustType {
@@ -40,6 +41,15 @@ impl Identifiable for RustType {
             RustType::Struct(strct) => strct.print(writer),
             RustType::Enum(enu) => enu.print(writer),
             RustType::Trait(trt) => trt.print(writer),
+        }
+    }
+
+    fn visibility(&self) -> bool {
+        match self {
+            RustType::Function(func) => func.visibility(),
+            RustType::Struct(strct) => strct.visibility(),
+            RustType::Enum(enu) => enu.visibility(),
+            RustType::Trait(trt) => trt.visibility(),
         }
     }
 }

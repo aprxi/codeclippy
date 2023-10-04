@@ -1,6 +1,5 @@
-use std::fmt::{Display, Formatter};
 use std::fmt;
-use std::fmt::Write;
+use std::fmt::{Display, Formatter, Write};
 
 use super::format::pretty_code_fmt;
 use super::{Identifiable, RustFunction, Visibility};
@@ -27,6 +26,10 @@ impl Identifiable for RustEnum {
 
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
         let _ = write!(writer, "{}", self);
+    }
+
+    fn visibility(&self) -> bool {
+        self.visibility == Visibility::Public
     }
 }
 

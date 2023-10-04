@@ -10,8 +10,7 @@ pub fn handle_ls(ls_matches: &clap::ArgMatches) {
     let show_dependencies =
         *ls_matches.get_one::<bool>("depends-on").unwrap_or(&false);
 
-    // TODO - implement
-    let _show_dependents =
+    let show_dependents =
         *ls_matches.get_one::<bool>("used-by").unwrap_or(&false);
 
     let target_uri = ls_matches
@@ -30,6 +29,7 @@ pub fn handle_ls(ls_matches: &clap::ArgMatches) {
         filter_name.as_deref(),
         &mut writer,
         show_dependencies,
+        show_dependents,
         maxdepth.copied(),
     );
 }

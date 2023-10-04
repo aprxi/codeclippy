@@ -221,7 +221,7 @@ fn extract_function(
                 }
                 self_arg.push_str("self");
                 (self_arg, "".into())
-            },
+            }
             syn::FnArg::Typed(pat_type) => {
                 // regular argument
                 if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {

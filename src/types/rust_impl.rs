@@ -36,6 +36,11 @@ impl Identifiable for RustImpl {
     fn print(&self, writer: &mut Box<dyn ClippyWriter>) {
         let _ = write!(writer, "{}", self);
     }
+
+    fn visibility(&self) -> bool {
+        true // TODO: validate if safe to assume impl is always public
+             // if cant assume, should probably convert to Option<bool>
+    }
 }
 
 impl Display for RustImpl {

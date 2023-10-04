@@ -1,11 +1,11 @@
 use std::collections::HashMap;
+
 use log;
 
 use crate::print_config::PrintConfig;
 use crate::registry::{GlobalRegistry, RegistryKind};
 use crate::tree::{RootNode, TreeNode};
 use crate::types::{RustStruct, RustType};
-
 use crate::writers::ClippyWriter;
 
 pub struct Dependencies {

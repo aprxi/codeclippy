@@ -10,6 +10,7 @@ pub fn list_map(
     filter: Option<&str>,
     writer: &mut Box<dyn ClippyWriter>,
     show_dependencies: bool,
+    show_dependents: bool,
     maxdepth: Option<usize>,
 ) {
     let base_directory = Path::new(directory);
@@ -30,10 +31,16 @@ pub fn list_map(
     };
 
     let link_dependencies = show_dependencies && filter.is_some();
-    let mut builder = TreeBuilder::new(visitors, use_full_path);
-    let file_chunks = builder.initialize_chunks(filter, link_dependencies);
+    let link_dependents = show_dependents && filter.is_some();
 
-    for root in &file_chunks {
+    let mut builder = TreeBuilder::new(visitors, use_full_path);
+    let root_nodes = builder.initialize_root_nodes(
+        filter,
+        link_dependencies,
+        link_dependents,
+    );
+
+    for root in &root_nodes {
         let mut buffered_writer: Box<dyn ClippyWriter> =
             Box::new(BufferedWriter::new());
         root.print(&mut buffered_writer, filter, use_full_path);

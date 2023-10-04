@@ -1,11 +1,10 @@
-
+use super::dependencies::find_dependencies;
 use super::initialize::ChunkInitializer;
 use crate::file_visitor::RustFileVisitor;
-use crate::print_config::{PrintConfig, PrintConfigBuilder};
+use crate::print_config::PrintConfigBuilder;
 use crate::registry::GlobalRegistry;
-use crate::tree::RootNode;
-
-use super::dependencies::find_dependencies;
+use crate::tree::{RootNode, TreeNode};
+use crate::types::Identifiable;
 
 pub struct TreeBuilder {
     visitors: Vec<RustFileVisitor>,
@@ -22,12 +21,13 @@ impl TreeBuilder {
         }
     }
 
-    pub fn initialize_chunks(
+    pub fn initialize_root_nodes(
         &mut self,
         filter: Option<&str>,
         link_dependencies: bool,
+        link_dependents: bool,
     ) -> Vec<RootNode> {
-        let mut chunks: Vec<RootNode> = self
+        let mut root_nodes: Vec<RootNode> = self
             .visitors
             .iter_mut()
             .map(|visitor| {
@@ -37,26 +37,73 @@ impl TreeBuilder {
             .collect();
 
         if !self.use_full_path {
-            self.validate_chunks_for_conflicts(&chunks, filter);
+            self.validate_chunks_for_conflicts(&root_nodes, filter);
         }
 
         if link_dependencies {
-            self.link_dependencies(&mut chunks, filter, self.use_full_path);
+            self.link_dependencies(&mut root_nodes, filter, self.use_full_path);
         }
-        chunks
-    }
 
-    pub fn add_dependencies(&self, root: &mut RootNode, config: &PrintConfig) {
-        find_dependencies(root, &self.global_registry, config);
+        if link_dependents {
+            let filter_path = if !self.use_full_path {
+                filter
+                    .expect("Filter must be set when using full path")
+                    .split("::")
+                    .collect::<Vec<&str>>()
+            } else {
+                // remove first element (filename) in case search is
+                // scoped to single file
+                filter
+                    .expect("Filter must be set when using full path")
+                    .split("::")
+                    .skip(1)
+                    .collect::<Vec<&str>>()
+            };
+
+            // Find the root and target node that matches the filter path
+            match find_matching_child(&root_nodes, &filter_path[0]) {
+                Some(root_index) => {
+                    // Check if main element is public
+                    let is_public = {
+                        // Create a new scope to limit lifetime
+                        // TODO: we currently not check if sub elements
+                        // are public
+                        let target_node = &root_nodes[root_index]
+                            .find_child_by_name(&filter_path[0])
+                            .expect("Child not found");
+                        target_node.rtype().visibility()
+                    };
+
+                    if is_public {
+                        // If the main element is public,
+                        // traverse through each root node.
+                        for root_node in &mut root_nodes {
+                            self.link_dependents(
+                                root_node,
+                                filter_path.clone(),
+                            );
+                        }
+                    } else {
+                        // If the main element is not public, traverse only
+                        // through the root node that contains the main element.
+                        let root_node = &mut root_nodes[root_index];
+                        self.link_dependents(root_node, filter_path);
+                    }
+                }
+                None => panic!("No node found for path {:?}", filter_path),
+            }
+        }
+
+        root_nodes
     }
 
     fn link_dependencies(
         &mut self,
-        chunks: &mut Vec<RootNode>,
+        root_nodes: &mut Vec<RootNode>,
         filter: Option<&str>,
         use_full_path: bool,
     ) {
-        for mut root in chunks {
+        for root in root_nodes {
             if let Some(filter_str) = filter {
                 let config = PrintConfigBuilder::new()
                     .filter(Some(filter_str.to_string()))
@@ -65,9 +112,17 @@ impl TreeBuilder {
                     .use_full_path(use_full_path)
                     .build();
 
-                self.add_dependencies(&mut root, &mut config.clone());
+                find_dependencies(root, &self.global_registry, &config);
             }
         }
+    }
+
+    fn link_dependents(
+        &mut self,
+        root_node: &mut RootNode,
+        filter_path: Vec<&str>,
+    ) {
+        // TODO: for each root node, find if the filter path matches
     }
 
     fn validate_chunks_for_conflicts(
@@ -91,4 +146,35 @@ impl TreeBuilder {
             }
         }
     }
+}
+
+fn find_matching_child(
+    root_nodes: &[RootNode],
+    target_name: &str,
+) -> Option<usize> {
+    for (i, root_node) in root_nodes.iter().enumerate() {
+        if root_node.find_child_by_name(target_name).is_some() {
+            return Some(i);
+        }
+    }
+    None
+}
+
+fn find_node_by_path<'a>(
+    node: &'a TreeNode,
+    path: &[&str],
+) -> Option<&'a TreeNode> {
+    if path.is_empty() {
+        return Some(node);
+    }
+
+    // Check if there are children and find the next node
+    let next_node = node
+        .children()
+        .as_ref()?
+        .iter()
+        .find(|child| child.name() == path[0])?;
+
+    // Recursive call with the found node and the rest of the path
+    find_node_by_path(next_node, &path[1..])
 }

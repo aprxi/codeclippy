@@ -38,6 +38,10 @@ impl TreeNode {
         &mut self.rtype
     }
 
+    pub fn children(&self) -> &Option<Vec<TreeNode>> {
+        &self.children
+    }
+
     pub fn children_mut(&mut self) -> &mut Vec<TreeNode> {
         self.children.get_or_insert_with(Vec::new)
     }
@@ -72,7 +76,6 @@ impl TreeNode {
 
         if let Some(children) = &self.children {
             for child in children {
-
                 let mut child_config = config.clone();
                 child_config.add_to_path(child.name.clone());
                 let child_printed = child.print(writer, child_config);
