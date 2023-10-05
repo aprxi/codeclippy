@@ -57,7 +57,7 @@ impl<'a> ChunkInitializer<'a> {
                 rust_struct,
                 visited,
             ));
-            if rust_struct.visibility() {
+            if rust_struct.is_public() {
                 global_registry.register_struct(
                     rust_struct.clone(),
                     Some(root.file_path().relative_path().as_str()),

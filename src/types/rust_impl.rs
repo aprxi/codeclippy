@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use super::{Identifiable, RustFunction};
+use super::{Visibility, Identifiable, RustFunction};
 use crate::helpers::generate_id;
 use crate::writers::ClippyWriter;
 
@@ -37,9 +37,8 @@ impl Identifiable for RustImpl {
         let _ = write!(writer, "{}", self);
     }
 
-    fn visibility(&self) -> bool {
-        true // TODO: validate if safe to assume impl is always public
-             // if cant assume, should probably convert to Option<bool>
+    fn visibility(&self) -> &Visibility {
+        &Visibility::Public   // assume Public
     }
 }
 

@@ -59,8 +59,8 @@ impl Identifiable for RustStruct {
         let _ = write!(writer, "{}", self);
     }
 
-    fn visibility(&self) -> bool {
-        self.visibility == Visibility::Public
+    fn visibility(&self) -> &Visibility {
+        &self.visibility
     }
 }
 

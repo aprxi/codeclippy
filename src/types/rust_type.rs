@@ -1,4 +1,4 @@
-use super::{RustEnum, RustFunction, RustStruct, RustTrait};
+use super::{Visibility, RustEnum, RustFunction, RustStruct, RustTrait};
 use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
@@ -13,7 +13,10 @@ pub trait Identifiable {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
     fn print(&self, writer: &mut Box<dyn ClippyWriter>);
-    fn visibility(&self) -> bool;
+    fn is_public(&self) -> bool {
+        *self.visibility() == Visibility::Public
+    }
+    fn visibility(&self) -> &Visibility;
 }
 
 impl Identifiable for RustType {
@@ -44,7 +47,7 @@ impl Identifiable for RustType {
         }
     }
 
-    fn visibility(&self) -> bool {
+    fn visibility(&self) -> &Visibility {
         match self {
             RustType::Function(func) => func.visibility(),
             RustType::Struct(strct) => strct.visibility(),

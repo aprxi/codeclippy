@@ -28,8 +28,8 @@ impl Identifiable for RustEnum {
         let _ = write!(writer, "{}", self);
     }
 
-    fn visibility(&self) -> bool {
-        self.visibility == Visibility::Public
+    fn visibility(&self) -> &Visibility {
+        &self.visibility
     }
 }
 

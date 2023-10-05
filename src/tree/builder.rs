@@ -61,33 +61,33 @@ impl TreeBuilder {
             };
 
             // Find the root and target node that matches the filter path
-            match find_matching_child(&root_nodes, &filter_path[0]) {
+            match find_root_node(&root_nodes, &filter_path[0]) {
                 Some(root_index) => {
                     // Check if main element is public
-                    let is_public = {
-                        // Create a new scope to limit lifetime
-                        // TODO: we currently not check if sub elements
-                        // are public
-                        let target_node = &root_nodes[root_index]
-                            .find_child_by_name(&filter_path[0])
-                            .expect("Child not found");
-                        target_node.rtype().visibility()
-                    };
+                    let rust_item = root_nodes[root_index]
+                        .find_child_by_name(&filter_path[0])
+                        .expect("Rust item not found")
+                        .rtype().clone();
 
-                    if is_public {
-                        // If the main element is public,
-                        // traverse through each root node.
+                    // TODO: if searching for sub-element (e.g. method of a
+                    // struct, first check if sub-element is public. If sub
+                    // is not public, we only need to check rust_item (self))
+
+                    if rust_item.is_public() {
+                        // If rust item is public, assume it can be called
+                        // in any root node
                         for root_node in &mut root_nodes {
                             self.link_dependents(
                                 root_node,
+                                &rust_item,
                                 filter_path.clone(),
                             );
                         }
                     } else {
-                        // If the main element is not public, traverse only
-                        // through the root node that contains the main element.
+                        // If the rust item is not public, traverse only
+                        // through the node in which it was found
                         let root_node = &mut root_nodes[root_index];
-                        self.link_dependents(root_node, filter_path);
+                        self.link_dependents(root_node, &rust_item, filter_path);
                     }
                 }
                 None => panic!("No node found for path {:?}", filter_path),
@@ -120,6 +120,7 @@ impl TreeBuilder {
     fn link_dependents(
         &mut self,
         root_node: &mut RootNode,
+        rust_item: &dyn Identifiable,
         filter_path: Vec<&str>,
     ) {
         // TODO: for each root node, find if the filter path matches
@@ -148,7 +149,7 @@ impl TreeBuilder {
     }
 }
 
-fn find_matching_child(
+fn find_root_node(
     root_nodes: &[RootNode],
     target_name: &str,
 ) -> Option<usize> {
