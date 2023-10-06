@@ -58,5 +58,9 @@ pub fn list_map(
         if show_dependencies && root.dependencies().len() > 0 {
             root.dependencies().print(writer);
         }
+
+        if show_dependents && root.dependents().len() > 0 {
+            root.dependents().print(writer);
+        }
     }
 }

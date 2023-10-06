@@ -1,5 +1,5 @@
 use super::dependencies::Dependencies;
-use super::TreeNode;
+use super::{TreeNode, Dependents};
 use crate::localfs::FilePath;
 use crate::print_config::PrintConfigBuilder;
 use crate::writers::ClippyWriter;
@@ -7,6 +7,7 @@ use crate::writers::ClippyWriter;
 pub struct RootNode {
     file_path: FilePath,
     dependencies: Dependencies,
+    dependents: Dependents,
     children: Vec<TreeNode>,
 }
 
@@ -15,6 +16,7 @@ impl RootNode {
         RootNode {
             file_path,
             dependencies: Dependencies::default(),
+            dependents: Dependents::default(),
             children: Vec::new(),
         }
     }
@@ -29,6 +31,14 @@ impl RootNode {
 
     pub fn set_dependencies(&mut self, dependencies: Dependencies) {
         self.dependencies = dependencies;
+    }
+
+    pub fn dependents(&self) -> &Dependents {
+        &self.dependents
+    }
+
+    pub fn set_dependents(&mut self, dependents: Dependents) {
+        self.dependents = dependents;
     }
 
     pub fn children(&self) -> &Vec<TreeNode> {

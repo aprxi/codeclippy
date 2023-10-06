@@ -23,16 +23,13 @@ impl Default for Dependencies {
 impl Dependencies {
     pub fn register_item(
         &mut self,
-        id: String,
         node: TreeNode,
         source: Option<&str>,
     ) {
         log::debug!("adding dependency: {}", node.clone().name());
-        let dependency = Dependency {
-            node,
-            source: source.map(|s| s.to_string()),
-        };
-        self.items_by_id.insert(id.clone(), dependency);
+        let node_id = node.id().to_string();
+        let dependency = Dependency::new(node, source);
+        self.items_by_id.insert(node_id, dependency);
     }
 
     pub fn len(&self) -> usize {
@@ -69,12 +66,19 @@ impl Dependencies {
     }
 }
 
-pub struct Dependency {
+struct Dependency {
     node: TreeNode,
     source: Option<String>,
 }
 
 impl Dependency {
+    pub fn new(node: TreeNode, source: Option<&str>) -> Self {
+        Dependency {
+            node,
+            source: source.map(|s| s.to_string()),
+        }
+    }
+
     pub fn node(&self) -> &TreeNode {
         &self.node
     }
@@ -182,7 +186,6 @@ fn collect_dependencies(
                     let node = (*local_item).clone();
                     let source = config.path().first().map(|s| s.as_str());
                     dependencies.register_item(
-                        node.id().to_string(),
                         node.clone(),
                         source,
                     );
@@ -195,7 +198,6 @@ fn collect_dependencies(
                         &registry_item.item();
                     let node = create_struct_node_from_registry(rust_struct);
                     dependencies.register_item(
-                        node.id().to_string(),
                         node.clone(),
                         registry_item.source(),
                     );
