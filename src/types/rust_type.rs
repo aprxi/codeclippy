@@ -1,4 +1,4 @@
-use super::{Visibility, RustEnum, RustFunction, RustStruct, RustTrait};
+use super::{RustEnum, RustFunction, RustStruct, RustTrait, Visibility};
 use crate::writers::ClippyWriter;
 
 #[derive(Debug, Clone)]
@@ -12,6 +12,12 @@ pub enum RustType {
 pub trait Identifiable {
     fn id(&self) -> &str;
     fn name(&self) -> &str;
+    fn as_rust_type(&self) -> Option<&RustType> {
+        None
+    }
+    fn methods(&self) -> Option<&Vec<RustFunction>> {
+        None
+    }
     fn print(&self, writer: &mut Box<dyn ClippyWriter>);
     fn is_public(&self) -> bool {
         *self.visibility() == Visibility::Public
@@ -53,6 +59,18 @@ impl Identifiable for RustType {
             RustType::Struct(strct) => strct.visibility(),
             RustType::Enum(enu) => enu.visibility(),
             RustType::Trait(trt) => trt.visibility(),
+        }
+    }
+    fn as_rust_type(&self) -> Option<&RustType> {
+        Some(self)
+    }
+
+    fn methods(&self) -> Option<&Vec<RustFunction>> {
+        match self {
+            RustType::Function(func) => func.methods(),
+            RustType::Struct(strct) => strct.methods(),
+            RustType::Enum(enu) => enu.methods(),
+            RustType::Trait(trt) => trt.methods(),
         }
     }
 }

@@ -21,11 +21,7 @@ impl Default for Dependencies {
 }
 
 impl Dependencies {
-    pub fn register_item(
-        &mut self,
-        node: TreeNode,
-        source: Option<&str>,
-    ) {
+    pub fn register_item(&mut self, node: TreeNode, source: Option<&str>) {
         log::debug!("adding dependency: {}", node.clone().name());
         let node_id = node.id().to_string();
         let dependency = Dependency::new(node, source);
@@ -185,10 +181,7 @@ fn collect_dependencies(
                 if let Some(local_item) = local_items_map.get(name) {
                     let node = (*local_item).clone();
                     let source = config.path().first().map(|s| s.as_str());
-                    dependencies.register_item(
-                        node.clone(),
-                        source,
-                    );
+                    dependencies.register_item(node.clone(), source);
                 }
                 // If not in the local items, try global registry
                 else if let Some(registry_item) =
@@ -197,10 +190,8 @@ fn collect_dependencies(
                     let RegistryKind::Struct(rust_struct) =
                         &registry_item.item();
                     let node = create_struct_node_from_registry(rust_struct);
-                    dependencies.register_item(
-                        node.clone(),
-                        registry_item.source(),
-                    );
+                    dependencies
+                        .register_item(node.clone(), registry_item.source());
                 }
             }
         }
@@ -219,7 +210,7 @@ fn collect_dependencies(
 
 fn create_struct_node_from_registry(s: &RustStruct) -> TreeNode {
     let mut node = TreeNode::new(RustType::Struct(s.clone()));
-    for method in s.methods() {
+    for method in s.methods().unwrap_or(&vec![]) {
         let method_node = TreeNode::new(RustType::Function(method.clone()));
         node.add_child(method_node);
     }

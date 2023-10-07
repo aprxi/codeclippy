@@ -12,7 +12,7 @@ pub struct RustEnum {
     visibility: Visibility,
     name: String,
     variants: Vec<(String, Vec<String>)>,
-    methods: Vec<RustFunction>,
+    methods: Option<Vec<RustFunction>>,
 }
 
 impl Identifiable for RustEnum {
@@ -44,12 +44,19 @@ impl RustEnum {
             name,
             visibility,
             variants,
-            methods: Vec::new(),
+            methods: None,
         }
     }
 
     pub fn add_methods(&mut self, methods: Vec<RustFunction>) {
-        self.methods.extend(methods);
+        match &mut self.methods {
+            Some(existing_methods) => existing_methods.extend(methods),
+            None => self.methods = Some(methods),
+        }
+    }
+
+    pub fn methods(&self) -> Option<&Vec<RustFunction>> {
+        self.methods.as_ref()
     }
 }
 
@@ -74,12 +81,15 @@ impl Display for RustEnum {
         }
         write!(&mut enum_str, "}}\n")?;
 
-        if !self.methods.is_empty() {
-            write!(&mut enum_str, "impl {} {{\n", self.name)?;
-            for method in &self.methods {
-                write!(&mut enum_str, "    {}\n", method)?;
+        match &self.methods {
+            Some(methods) => {
+                write!(&mut enum_str, "impl {} {{\n", self.name)?;
+                for method in methods {
+                    write!(&mut enum_str, "{}\n", method)?;
+                }
+                write!(&mut enum_str, "}}\n")?;
             }
-            write!(&mut enum_str, "}}\n")?;
+            None => {}
         }
 
         pretty_code_fmt(&mut enum_str);

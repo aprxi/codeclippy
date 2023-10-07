@@ -11,7 +11,7 @@ pub struct RustStruct {
     name: String,
     visibility: Visibility,
     fields: Vec<(String, String)>,
-    methods: Vec<RustFunction>,
+    methods: Option<Vec<RustFunction>>,
 }
 
 impl RustStruct {
@@ -21,7 +21,7 @@ impl RustStruct {
             name: name.to_string(),
             visibility,
             fields: Vec::new(),
-            methods: Vec::new(),
+            methods: None,
         }
     }
 
@@ -33,8 +33,8 @@ impl RustStruct {
         &self.name
     }
 
-    pub fn methods(&self) -> &Vec<RustFunction> {
-        &self.methods
+    pub fn methods(&self) -> Option<&Vec<RustFunction>> {
+        self.methods.as_ref()
     }
 
     pub fn add_fields(&mut self, fields: Vec<(String, String)>) {
@@ -42,7 +42,10 @@ impl RustStruct {
     }
 
     pub fn add_methods(&mut self, methods: Vec<RustFunction>) {
-        self.methods.extend(methods);
+        match &mut self.methods {
+            Some(existing_methods) => existing_methods.extend(methods),
+            None => self.methods = Some(methods),
+        }
     }
 }
 
@@ -81,10 +84,10 @@ impl fmt::Display for RustStruct {
         }
         write!(&mut struct_str, "}}\n")?;
 
-        if !self.methods.is_empty() {
+        if let Some(methods) = &self.methods {
             write!(&mut struct_str, "impl {} {{\n", self.name)?;
-            for method in &self.methods {
-                write!(&mut struct_str, "    {}\n", method)?;
+            for method in methods {
+                write!(&mut struct_str, "{}\n", method)?;
             }
             write!(&mut struct_str, "}}\n")?;
         }

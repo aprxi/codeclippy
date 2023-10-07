@@ -1,11 +1,11 @@
+use super::dependencies::find_dependencies;
+use super::dependents::find_dependents;
 use super::initialize::ChunkInitializer;
 use crate::file_visitor::RustFileVisitor;
 use crate::print_config::PrintConfigBuilder;
 use crate::registry::GlobalRegistry;
 use crate::tree::{RootNode, TreeNode};
 use crate::types::Identifiable;
-use super::dependencies::find_dependencies;
-use super::dependents::find_dependents;
 
 pub struct TreeBuilder {
     visitors: Vec<RustFileVisitor>,
@@ -76,53 +76,54 @@ impl TreeBuilder {
         root_nodes: &mut Vec<RootNode>,
         filter: Option<&str>,
     ) {
-       let filter_path = if !self.use_full_path {
-           filter
-               .expect("Filter must be set when using full path")
-               .split("::")
-               .collect::<Vec<&str>>()
-       } else {
-           // remove first element (filename) in case search is
-           // scoped to single file
-           filter
-               .expect("Filter must be set when using full path")
-               .split("::")
-               .skip(1)
-               .collect::<Vec<&str>>()
-       };
+        let filter_path = if !self.use_full_path {
+            filter
+                .expect("Filter must be set when using full path")
+                .split("::")
+                .collect::<Vec<&str>>()
+        } else {
+            // remove first element (filename) in case search is
+            // scoped to single file
+            filter
+                .expect("Filter must be set when using full path")
+                .split("::")
+                .skip(1)
+                .collect::<Vec<&str>>()
+        };
 
-       // Find the root and target node that matches the filter path
-       match find_root_node(&root_nodes, &filter_path[0]) {
-           Some(root_index) => {
-               // Check if main element is public
-               let target_item = root_nodes[root_index]
-                   .find_child_by_name(&filter_path[0])
-                   .expect("Rust item not found")
-                   .rtype().clone();
+        // Find the root and target node that matches the filter path
+        match find_root_node(&root_nodes, &filter_path[0]) {
+            Some(root_index) => {
+                // Check if main element is public
+                let target_item = root_nodes[root_index]
+                    .find_child_by_name(&filter_path[0])
+                    .expect("Rust item not found")
+                    .rtype()
+                    .clone();
 
-               // TODO: if searching for sub-element (e.g. method of a
-               // struct, first check if sub-element is public. If sub
-               // is not public, we only need to check rust_item (self))
+                // TODO: if searching for sub-element (e.g. method of a
+                // struct, first check if sub-element is public. If sub
+                // is not public, we only need to check rust_item (self))
 
-               if target_item.is_public() {
-                   // If rust item is public, assume it can be called
-                   // in any root node
-                   for root_node in root_nodes {
-                       find_dependents(
-                           root_node,
-                           &target_item,
-                           filter_path.clone(),
-                       );
-                   }
-               } else {
-                   // If the rust item is not public, traverse only
-                   // through the node in which it was found
-                   let root_node = &mut root_nodes[root_index];
-                   find_dependents(root_node, &target_item, filter_path);
-               }
-           }
-           None => panic!("No node found for path {:?}", filter_path),
-       }
+                if target_item.is_public() {
+                    // If rust item is public, assume it can be called
+                    // in any root node
+                    for root_node in root_nodes {
+                        find_dependents(
+                            root_node,
+                            &target_item,
+                            filter_path.clone(),
+                        );
+                    }
+                } else {
+                    // If the rust item is not public, traverse only
+                    // through the node in which it was found
+                    let root_node = &mut root_nodes[root_index];
+                    find_dependents(root_node, &target_item, filter_path);
+                }
+            }
+            None => panic!("No node found for path {:?}", filter_path),
+        }
     }
 
     fn validate_chunks_for_conflicts(
@@ -148,10 +149,7 @@ impl TreeBuilder {
     }
 }
 
-fn find_root_node(
-    root_nodes: &[RootNode],
-    target_name: &str,
-) -> Option<usize> {
+fn find_root_node(root_nodes: &[RootNode], target_name: &str) -> Option<usize> {
     for (i, root_node) in root_nodes.iter().enumerate() {
         if root_node.find_child_by_name(target_name).is_some() {
             return Some(i);
@@ -178,5 +176,3 @@ fn find_node_by_path<'a>(
     // Recursive call with the found node and the rest of the path
     find_node_by_path(next_node, &path[1..])
 }
-
-

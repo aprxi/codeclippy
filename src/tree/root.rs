@@ -1,5 +1,5 @@
 use super::dependencies::Dependencies;
-use super::{TreeNode, Dependents};
+use super::{Dependents, TreeNode};
 use crate::localfs::FilePath;
 use crate::print_config::PrintConfigBuilder;
 use crate::writers::ClippyWriter;

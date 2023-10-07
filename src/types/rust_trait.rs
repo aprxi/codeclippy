@@ -11,7 +11,7 @@ pub struct RustTrait {
     id: String,
     visibility: Visibility,
     name: String,
-    methods: Vec<RustFunction>,
+    methods: Option<Vec<RustFunction>>,
 }
 
 impl Identifiable for RustTrait {
@@ -42,12 +42,12 @@ impl RustTrait {
             id: generate_id(&name),
             name,
             visibility,
-            methods,
+            methods: Some(methods),
         }
     }
 
-    pub fn methods(&self) -> &Vec<RustFunction> {
-        &self.methods
+    pub fn methods(&self) -> Option<&Vec<RustFunction>> {
+        self.methods.as_ref()
     }
 }
 
@@ -62,8 +62,10 @@ impl Display for RustTrait {
         };
         write!(&mut trait_str, "{}trait {} {{\n", visibility, self.name)?;
 
-        for method in &self.methods {
-            write!(&mut trait_str, "    {}", method)?;
+        if let Some(methods) = &self.methods {
+            for method in methods {
+                write!(&mut trait_str, "    {}", method)?;
+            }
         }
         write!(&mut trait_str, "}}\n")?;
         pretty_code_fmt(&mut trait_str);

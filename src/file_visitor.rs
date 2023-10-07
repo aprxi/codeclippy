@@ -67,7 +67,9 @@ impl RustFileVisitor {
                 .iter_mut()
                 .find(|struct_item| struct_item.name() == rust_impl.for_type)
             {
-                struct_to_update.add_methods(rust_impl.functions.clone());
+                struct_to_update.add_methods(
+                    rust_impl.methods.clone().unwrap_or_else(Vec::new),
+                );
             }
         }
     }
@@ -79,7 +81,9 @@ impl RustFileVisitor {
                 .iter_mut()
                 .find(|enum_item| enum_item.name() == rust_impl.for_type)
             {
-                enum_to_update.add_methods(rust_impl.functions.clone());
+                enum_to_update.add_methods(
+                    rust_impl.methods.clone().unwrap_or_else(Vec::new),
+                );
             }
         }
     }

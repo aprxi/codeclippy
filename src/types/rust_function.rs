@@ -23,7 +23,7 @@ pub struct RustFunction {
     output: Option<String>,
     file_path: Option<FilePath>,
     block: Option<Box<syn::Block>>,
-    functions: Vec<RustFunction>,
+    methods: Option<Vec<RustFunction>>,
     instantiated_items: HashSet<String>,
 }
 
@@ -37,7 +37,7 @@ impl RustFunction {
             output: None,
             file_path: None,
             block: None,
-            functions: Vec::new(),
+            methods: None,
             instantiated_items: HashSet::new(),
         }
     }
@@ -58,7 +58,7 @@ impl RustFunction {
             output,
             file_path,
             block,
-            functions: Vec::new(),
+            methods: None,
             instantiated_items: HashSet::new(),
         }
     }
@@ -71,8 +71,8 @@ impl RustFunction {
         &self.name
     }
 
-    pub fn functions(&self) -> &Vec<RustFunction> {
-        &self.functions
+    pub fn methods(&self) -> Option<&Vec<RustFunction>> {
+        self.methods.as_ref()
     }
 
     pub fn instantiated_items(&self) -> &HashSet<String> {
@@ -107,8 +107,8 @@ impl std::fmt::Debug for RustFunction {
         writeln!(f, "  inputs: {:?},", self.inputs)?;
         writeln!(f, "  output: {:?},", self.output)?;
         writeln!(f, "  block: {},", self.block.is_some())?;
-        writeln!(f, "  functions: [")?;
-        for func in &self.functions {
+        writeln!(f, "  methods: [")?;
+        for func in self.methods.as_deref().unwrap_or_default() {
             writeln!(f, "    {},", func)?;
         }
         writeln!(f, "  ],")?;
@@ -180,8 +180,10 @@ impl RustFunction {
         if let Some(ref block) = self.block {
             let mut body_visitor = FunctionCallVisitor::default();
             body_visitor.visit_block(block);
-
-            self.functions.extend(body_visitor.functions);
+            match &mut self.methods {
+                Some(methods) => methods.extend(body_visitor.functions),
+                None => self.methods = Some(body_visitor.functions),
+            }
             self.instantiated_items
                 .extend(body_visitor.instantiated_items);
         }

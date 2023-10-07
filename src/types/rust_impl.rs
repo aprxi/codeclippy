@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-use super::{Visibility, Identifiable, RustFunction};
+use super::{Identifiable, RustFunction, Visibility};
 use crate::helpers::generate_id;
 use crate::writers::ClippyWriter;
 
@@ -8,18 +8,15 @@ use crate::writers::ClippyWriter;
 pub struct RustImpl {
     id: String,
     pub for_type: String,
-    pub functions: Vec<RustFunction>,
+    pub methods: Option<Vec<RustFunction>>,
 }
 
 impl RustImpl {
-    pub fn new_with_data(
-        for_type: String,
-        functions: Vec<RustFunction>,
-    ) -> Self {
+    pub fn new_with_data(for_type: String, methods: Vec<RustFunction>) -> Self {
         RustImpl {
             id: generate_id(&for_type),
             for_type,
-            functions,
+            methods: Some(methods),
         }
     }
 }
@@ -38,16 +35,18 @@ impl Identifiable for RustImpl {
     }
 
     fn visibility(&self) -> &Visibility {
-        &Visibility::Public   // assume Public
+        &Visibility::Public // assume Public
     }
 }
 
 impl Display for RustImpl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut functions = String::new();
-        for function in &self.functions {
-            functions.push_str(&format!("{}\n", function));
+        let mut methods_str = String::new();
+        if let Some(methods) = &self.methods {
+            for method in methods {
+                methods_str.push_str(&format!("{}\n", method));
+            }
         }
-        write!(f, "impl {} {{\n{}\n}}", self.for_type, functions)
+        write!(f, "impl {} {{\n{}\n}}", self.for_type, methods_str)
     }
 }
