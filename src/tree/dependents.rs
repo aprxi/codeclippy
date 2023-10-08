@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use log;
 
 use crate::tree::{RootNode, TreeNode};
-use crate::types::{Identifiable, RustFunction, RustType};
+use crate::types::{Identifiable, RustStruct, RustType};
 use crate::writers::ClippyWriter;
 
 pub struct Dependents {
@@ -118,27 +118,39 @@ fn find_identifiable_items(
     }
     let mut dependent_items = Vec::new();
     if let Some(rust_type) = item.as_rust_type() {
-
-        // process impl methods regardless of rust type (struct, enum, trait),
-        // as these can handled in the same way as an independent function
+        // impl methods on each type (struct, enum, trait), and nested
+        // functions can be processed as a RustFunction
+        // call this function recursively for each
         if let Some(methods) = rust_type.methods() {
-            process_methods(methods, target_item, &mut dependent_items);
+            for method in methods {
+                dependent_items.extend(find_identifiable_items(
+                    Box::new(RustType::Function(method.clone())),
+                    target_item,
+                ));
+            }
         }
-        //
-        match rust_type {
+
+        // check item for dependency on target
+        // note excluding (impl) methods as this is already done
+        let is_dependent = match rust_type {
             RustType::Function(func) => {
-                check_dependency_on_target(func, target_item);
+                check_dependency_on_target(func, target_item)
             }
             RustType::Struct(strct) => {
-                check_dependency_on_target(strct, target_item);
+                struct_dependency_on_target(strct, target_item.name())
             }
             RustType::Enum(enu) => {
-                check_dependency_on_target(enu, target_item);
+                check_dependency_on_target(enu, target_item)
             }
             RustType::Trait(trt) => {
-                check_dependency_on_target(trt, target_item);
+                check_dependency_on_target(trt, target_item)
             }
+        };
+
+        if is_dependent {
+            dependent_items.push(item);
         }
+
     } else {
         panic!("item is not a RustType: {:?}", item.name());
     }
@@ -149,20 +161,54 @@ fn check_dependency_on_target(
     _dependent_item: &dyn Identifiable,
     _target_item: &dyn Identifiable,
 ) -> bool {
-    // TODO: determine if dependent_item is used in target_item
+    // placeholder - each type requires its own parser function
     log::debug!("Checking: {}", _dependent_item.name());
     return false;
 }
 
-fn process_methods(
-    methods: &Vec<RustFunction>,
-    target_item: &dyn Identifiable,
-    dependent_items: &mut Vec<Box<dyn Identifiable>>,
-) {
-    for method in methods {
-        dependent_items.extend(find_identifiable_items(
-            Box::new(RustType::Function(method.clone())),
-            target_item,
-        ));
+fn struct_dependency_on_target(strct: &RustStruct, target_name: &str) -> bool {
+    // Get struct in readable (cleaned, validated) code format.
+    let struct_fields_code = strct.struct_base_block_str();
+    // Parse struct code into syntax tree.
+    let syntax_tree =
+        syn::parse_file(&struct_fields_code).expect("Unable to parse code");
+
+    let mut type_names = Vec::new();
+    for item in syntax_tree.items {
+        match item {
+            syn::Item::Struct(item_struct) => {
+                for field in item_struct.fields {
+                    extract_type_names(&field.ty, &mut type_names);
+                }
+            }
+            _ => {
+                panic!("Unexpected item in syntax tree");
+            }
+        }
+    }
+    // Check if target_name is in type_names
+    type_names.iter().any(|name| name == target_name)
+}
+
+fn extract_type_names(ty: &syn::Type, names: &mut Vec<String>) {
+    match ty {
+        syn::Type::Path(type_path) => {
+            let path = &type_path.path;
+            let name = path
+                .segments
+                .iter()
+                .map(|seg| seg.ident.to_string())
+                .collect::<Vec<_>>()
+                .join("::");
+            names.push(name);
+        }
+        syn::Type::Tuple(type_tuple) => {
+            for elem_ty in &type_tuple.elems {
+                extract_type_names(elem_ty, names);
+            }
+        }
+        // Path and Tuple catches majority of syntax for now,
+        // but should expand this to handle any valid case over time
+        _ => {}
     }
 }

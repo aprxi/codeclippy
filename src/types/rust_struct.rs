@@ -10,7 +10,7 @@ pub struct RustStruct {
     id: String,
     name: String,
     visibility: Visibility,
-    fields: Vec<(String, String)>,
+    fields: Option<Vec<(String, String)>>,
     methods: Option<Vec<RustFunction>>,
 }
 
@@ -20,7 +20,7 @@ impl RustStruct {
             id: id.to_string(),
             name: name.to_string(),
             visibility,
-            fields: Vec::new(),
+            fields: None,
             methods: None,
         }
     }
@@ -38,7 +38,10 @@ impl RustStruct {
     }
 
     pub fn add_fields(&mut self, fields: Vec<(String, String)>) {
-        self.fields.extend(fields);
+        match &mut self.fields {
+            Some(existing_fields) => existing_fields.extend(fields),
+            None => self.fields = Some(fields),
+        }
     }
 
     pub fn add_methods(&mut self, methods: Vec<RustFunction>) {
@@ -46,6 +49,43 @@ impl RustStruct {
             Some(existing_methods) => existing_methods.extend(methods),
             None => self.methods = Some(methods),
         }
+    }
+
+    pub fn struct_base_block_str(&self) -> String {
+        let mut fields_str = String::new();
+        let visibility = if self.visibility.to_string().is_empty() {
+            String::from("")
+        } else {
+            format!("{} ", self.visibility)
+        };
+        write!(&mut fields_str, "{}struct {} {{\n", visibility, self.name)
+            .unwrap();
+        if let Some(fields) = &self.fields {
+            for (field_name, field_type) in fields {
+                write!(
+                    &mut fields_str,
+                    "    {}: {},\n",
+                    field_name, field_type
+                )
+                .unwrap();
+            }
+        }
+        write!(&mut fields_str, "}}\n").unwrap();
+        pretty_code_fmt(&mut fields_str);
+        fields_str
+    }
+
+    pub fn struct_impl_block_str(&self) -> String {
+        let mut methods_str = String::new();
+        if let Some(methods) = &self.methods {
+            write!(&mut methods_str, "impl {} {{\n", self.name).unwrap();
+            for method in methods {
+                write!(&mut methods_str, "{}\n", method).unwrap();
+            }
+            write!(&mut methods_str, "}}\n").unwrap();
+        }
+        pretty_code_fmt(&mut methods_str);
+        methods_str
     }
 }
 
@@ -69,31 +109,9 @@ impl Identifiable for RustStruct {
 
 impl fmt::Display for RustStruct {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut struct_str = String::new();
+        let mut struct_str = self.struct_base_block_str();
+        struct_str.push_str(&self.struct_impl_block_str());
 
-        // Constructing the raw struct string representation
-        let visibility = if self.visibility.to_string().is_empty() {
-            String::from("")
-        } else {
-            format!("{} ", self.visibility)
-        };
-        write!(&mut struct_str, "{}struct {} {{\n", visibility, self.name)?;
-
-        for (field_name, field_type) in &self.fields {
-            write!(&mut struct_str, "    {}: {},\n", field_name, field_type)?;
-        }
-        write!(&mut struct_str, "}}\n")?;
-
-        if let Some(methods) = &self.methods {
-            write!(&mut struct_str, "impl {} {{\n", self.name)?;
-            for method in methods {
-                write!(&mut struct_str, "{}\n", method)?;
-            }
-            write!(&mut struct_str, "}}\n")?;
-        }
-
-        // Pretty format the raw struct string representation.
-        pretty_code_fmt(&mut struct_str);
         write!(f, "{}", struct_str)
     }
 }
