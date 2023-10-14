@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use log;
 
 use crate::tree::{RootNode, TreeNode};
-use crate::types::{Identifiable, RustStruct, RustType};
+use crate::types::{Identifiable, RustStruct, RustEnum, RustType};
 use crate::writers::ClippyWriter;
 
 pub struct Dependents {
@@ -99,6 +99,11 @@ pub fn find_dependents(
             // ideally we should register only parts that have the
             // target_item as a direct dependency (example: a method of a
             // struct instead of a full struct).
+            log::debug!(
+                "Found {} dependents for {}",
+                items_found.len(),
+                target_item.name()
+            );
             dependents.register_item(
                 node.clone(), // TODO: why not register RustItem instead
                 Some(&source),
@@ -140,17 +145,15 @@ fn find_identifiable_items(
                 struct_dependency_on_target(strct, target_item.name())
             }
             RustType::Enum(enu) => {
-                check_dependency_on_target(enu, target_item)
+                enum_dependency_on_target(enu, target_item.name())
             }
-            RustType::Trait(trt) => {
-                check_dependency_on_target(trt, target_item)
-            }
+            // Trait should not have additinonal dependents
+            // (methods are already checked as functions above)
+            RustType::Trait(_) => false,
         };
-
         if is_dependent {
             dependent_items.push(item);
         }
-
     } else {
         panic!("item is not a RustType: {:?}", item.name());
     }
@@ -166,49 +169,90 @@ fn check_dependency_on_target(
     return false;
 }
 
-fn struct_dependency_on_target(strct: &RustStruct, target_name: &str) -> bool {
-    // Get struct in readable (cleaned, validated) code format.
-    let struct_fields_code = strct.struct_base_block_str();
-    // Parse struct code into syntax tree.
+
+fn enum_dependency_on_target(enu: &RustEnum, target_name: &str) -> bool {
+    // get clean syntax tree via syn library by feeding it formatted code
+    let enum_variants_block = enu.enum_base_block_str();
     let syntax_tree =
-        syn::parse_file(&struct_fields_code).expect("Unable to parse code");
+        syn::parse_file(&enum_variants_block).expect("Unable to parse code");
 
     let mut type_names = Vec::new();
     for item in syntax_tree.items {
-        match item {
-            syn::Item::Struct(item_struct) => {
-                for field in item_struct.fields {
-                    extract_type_names(&field.ty, &mut type_names);
-                }
-            }
-            _ => {
-                panic!("Unexpected item in syntax tree");
-            }
+        if let syn::Item::Enum(enum_item) = item {
+            extract_type_names_from_enum(&enum_item, &mut type_names);
+        } else {
+            panic!("Unexpected item in syntax tree");
         }
     }
-    // Check if target_name is in type_names
+    // Check if any of the extracted type names match the target name.
     type_names.iter().any(|name| name == target_name)
 }
 
-fn extract_type_names(ty: &syn::Type, names: &mut Vec<String>) {
+
+fn extract_type_names_from_enum(enum_item: &syn::ItemEnum, type_names: &mut Vec<String>) {
+    for variant in &enum_item.variants {
+        for field in &variant.fields {
+            extract_type_names(&field.ty, type_names);
+        }
+    }
+}
+
+
+fn struct_dependency_on_target(strct: &RustStruct, target_name: &str) -> bool {
+    // get clean syntax tree via syn library by feeding it formatted code
+    let struct_fields_block = strct.struct_base_block_str();
+    let syntax_tree =
+        syn::parse_file(&struct_fields_block).expect("Unable to parse code");
+
+    let mut type_names = Vec::new();
+    for item in syntax_tree.items {
+        if let syn::Item::Struct(item_struct) = item {
+            for field in item_struct.fields {
+                extract_type_names(&field.ty, &mut type_names);
+            }
+        } else {
+            panic!("Unexpected item in syntax tree");
+        }
+    }
+    // Check if any of the extracted type names match the target name.
+    type_names.iter().any(|name| name == target_name)
+}
+
+fn extract_type_names(ty: &syn::Type, type_names: &mut Vec<String>) {
     match ty {
         syn::Type::Path(type_path) => {
-            let path = &type_path.path;
-            let name = path
-                .segments
-                .iter()
-                .map(|seg| seg.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::");
-            names.push(name);
+            if let Some(segment) = type_path.path.segments.last() {
+                type_names.push(segment.ident.to_string());
+                // Recursively handle nested types
+                if let syn::PathArguments::AngleBracketed(
+                    angle_bracketed_args,
+                ) = &segment.arguments
+                {
+                    for arg in &angle_bracketed_args.args {
+                        match arg {
+                            syn::GenericArgument::Type(nested_ty) => {
+                                extract_type_names(nested_ty, type_names);
+                            }
+                            _ => {
+                                log::debug!(
+                                    "Unexpected generic argument -- not yet \
+                                     supported"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
         }
         syn::Type::Tuple(type_tuple) => {
             for elem_ty in &type_tuple.elems {
-                extract_type_names(elem_ty, names);
+                extract_type_names(elem_ty, type_names);
             }
         }
-        // Path and Tuple catches majority of syntax for now,
-        // but should expand this to handle any valid case over time
-        _ => {}
+        _ => {
+            // Path and Tuple catches majority of syntax for now,
+            // but should expand this to handle any valid case over time
+            log::debug!("Unexpected type -- not yet supported");
+        }
     }
 }

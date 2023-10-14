@@ -16,6 +16,16 @@ pub fn ls_subcommand() -> Command {
              'foo.*', '.*bar'",
         ))
         .arg(
+            Arg::new("silent")
+                .long("silent")
+                .short('s')
+                .help(
+                    "Suppress query output itself. This is useful to only
+                      show additional items like dependencies or dependents.",
+                )
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
             Arg::new("depends-on")
                 .long("depends-on")
                 .short('d')

@@ -1,4 +1,5 @@
 use std::fmt;
+use std::fmt::Display;
 use std::fmt::Write;
 
 use super::format::pretty_code_fmt;
@@ -107,7 +108,7 @@ impl Identifiable for RustStruct {
     }
 }
 
-impl fmt::Display for RustStruct {
+impl Display for RustStruct {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut struct_str = self.struct_base_block_str();
         struct_str.push_str(&self.struct_impl_block_str());

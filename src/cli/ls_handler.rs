@@ -13,6 +13,8 @@ pub fn handle_ls(ls_matches: &clap::ArgMatches) {
     let show_dependents =
         *ls_matches.get_one::<bool>("used-by").unwrap_or(&false);
 
+    let silence_query = *ls_matches.get_one::<bool>("silent").unwrap_or(&false);
+
     let target_uri = ls_matches
         .get_one::<String>("clip")
         .map(ToString::to_string);
@@ -28,6 +30,7 @@ pub fn handle_ls(ls_matches: &clap::ArgMatches) {
         &uri,
         filter_name.as_deref(),
         &mut writer,
+        silence_query,
         show_dependencies,
         show_dependents,
         maxdepth.copied(),

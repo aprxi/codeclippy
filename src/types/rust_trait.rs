@@ -49,26 +49,30 @@ impl RustTrait {
     pub fn methods(&self) -> Option<&Vec<RustFunction>> {
         self.methods.as_ref()
     }
-}
 
-impl Display for RustTrait {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    pub fn trait_block_str(&self) -> String {
         let mut trait_str = String::new();
-
         let visibility = if self.visibility.to_string().is_empty() {
             String::from("")
         } else {
             format!("{} ", self.visibility)
         };
-        write!(&mut trait_str, "{}trait {} {{\n", visibility, self.name)?;
-
+        write!(&mut trait_str, "{}trait {} {{\n", visibility, self.name).unwrap();
         if let Some(methods) = &self.methods {
             for method in methods {
-                write!(&mut trait_str, "    {}", method)?;
+                write!(&mut trait_str, "    {}", method).unwrap();
             }
         }
-        write!(&mut trait_str, "}}\n")?;
+        write!(&mut trait_str, "}}\n").unwrap();
         pretty_code_fmt(&mut trait_str);
+        trait_str
+    }
+
+}
+
+impl Display for RustTrait {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let trait_str = self.trait_block_str();
         write!(f, "{}", trait_str)
     }
 }

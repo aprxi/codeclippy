@@ -9,6 +9,7 @@ pub fn list_map(
     directory: &str,
     filter: Option<&str>,
     writer: &mut Box<dyn ClippyWriter>,
+    silence_query: bool,
     show_dependencies: bool,
     show_dependents: bool,
     maxdepth: Option<usize>,
@@ -41,20 +42,22 @@ pub fn list_map(
     );
 
     for root in &root_nodes {
-        let mut buffered_writer: Box<dyn ClippyWriter> =
-            Box::new(BufferedWriter::new());
-        root.print(&mut buffered_writer, filter, use_full_path);
+        if !silence_query {
+            let mut buffered_writer: Box<dyn ClippyWriter> =
+                Box::new(BufferedWriter::new());
 
-        if let Some(buffered_data) = buffered_writer.get_buffer() {
-            let buffered_str = String::from_utf8_lossy(buffered_data);
-            let _ = writeln!(
-                writer,
-                "@{}:\n{}",
-                root.file_path().relative_path(),
-                buffered_str
-            );
+            root.print(&mut buffered_writer, filter, use_full_path);
+
+            if let Some(buffered_data) = buffered_writer.get_buffer() {
+                let buffered_str = String::from_utf8_lossy(buffered_data);
+                let _ = writeln!(
+                    writer,
+                    "@{}:\n{}",
+                    root.file_path().relative_path(),
+                    buffered_str
+                );
+            }
         }
-
         if show_dependencies && root.dependencies().len() > 0 {
             root.dependencies().print(writer);
         }

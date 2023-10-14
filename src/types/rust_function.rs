@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::error::Error;
-use std::fmt::Write;
+use std::fmt::{Write, Formatter, Display, Debug};
 use std::{fmt, fs};
 
 use proc_macro2::LineColumn;
@@ -98,8 +98,8 @@ impl Identifiable for RustFunction {
     }
 }
 
-impl std::fmt::Debug for RustFunction {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl Debug for RustFunction {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         writeln!(f, "RustFunction {{")?;
         writeln!(f, "  id: {},", self.id)?;
         writeln!(f, "  visibility: {:?},", self.visibility)?;
@@ -117,8 +117,8 @@ impl std::fmt::Debug for RustFunction {
     }
 }
 
-impl fmt::Display for RustFunction {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl Display for RustFunction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut formatted = String::new();
 
         // Write function signature
