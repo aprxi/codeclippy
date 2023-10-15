@@ -7,6 +7,6 @@ mod tree;
 
 pub use builder::TreeBuilder;
 pub use dependencies::Dependencies;
-pub use dependents::Dependents;
+pub use dependents::{Dependents, find_dependents};
 pub use root::RootNode;
 pub use tree::TreeNode;

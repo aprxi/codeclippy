@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use syn::visit::Visit;
+use syn::ExprPath;
 
 use crate::types::{RustFunction, Visibility};
 
@@ -36,5 +37,26 @@ impl Default for FunctionCallVisitor {
             functions: Vec::new(),
             instantiated_items: HashSet::new(),
         }
+    }
+}
+
+pub struct ItemNameVisitor {
+    pub item_names: HashSet<String>,
+}
+
+impl ItemNameVisitor {
+    pub fn new() -> Self {
+        ItemNameVisitor {
+            item_names: HashSet::new(),
+        }
+    }
+}
+
+impl<'ast> Visit<'ast> for ItemNameVisitor {
+    fn visit_expr_path(&mut self, node: &'ast ExprPath) {
+        if let Some(ident) = node.path.get_ident() {
+            self.item_names.insert(ident.to_string());
+        }
+        syn::visit::visit_expr_path(self, node);
     }
 }

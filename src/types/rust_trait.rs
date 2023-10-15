@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Write};
 
 use super::format::pretty_code_fmt;
 use super::{Identifiable, RustFunction, Visibility};
@@ -57,7 +57,8 @@ impl RustTrait {
         } else {
             format!("{} ", self.visibility)
         };
-        write!(&mut trait_str, "{}trait {} {{\n", visibility, self.name).unwrap();
+        write!(&mut trait_str, "{}trait {} {{\n", visibility, self.name)
+            .unwrap();
         if let Some(methods) = &self.methods {
             for method in methods {
                 write!(&mut trait_str, "    {}", method).unwrap();
@@ -67,7 +68,6 @@ impl RustTrait {
         pretty_code_fmt(&mut trait_str);
         trait_str
     }
-
 }
 
 impl Display for RustTrait {

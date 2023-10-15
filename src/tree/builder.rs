@@ -122,7 +122,12 @@ impl TreeBuilder {
                     find_dependents(root_node, &target_item, filter_path);
                 }
             }
-            None => panic!("No node found for path {:?}", filter_path),
+            None => {
+                log::info!(
+                    "Item '{}' not found at root level of any file",
+                    filter_path[0]
+                );
+            }
         }
     }
 

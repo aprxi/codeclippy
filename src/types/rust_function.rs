@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 use std::error::Error;
-use std::fmt::{Write, Formatter, Display, Debug};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::{fmt, fs};
 
 use proc_macro2::LineColumn;
@@ -78,6 +78,82 @@ impl RustFunction {
     pub fn instantiated_items(&self) -> &HashSet<String> {
         &self.instantiated_items
     }
+
+    pub fn signature_str(&self) -> String {
+        let mut signature = String::new();
+
+        // Write function signature
+        write!(
+            &mut signature,
+            "{}fn {}(",
+            if self.visibility().to_string().is_empty() {
+                String::from("")
+            } else {
+                format!("{} ", self.visibility)
+            },
+            self.name
+        )
+        .unwrap();
+
+        // Write inputs
+        let inputs: Vec<String> = self
+            .inputs
+            .iter()
+            .map(|(name, typ)| {
+                if typ.is_empty() {
+                    name.clone() // if type is empty, just clone the name
+                } else {
+                    format!("{}: {}", name, typ) // else, format with ":"
+                }
+            })
+            .collect();
+        write!(&mut signature, "{})", inputs.join(", ")).unwrap();
+
+        // Write output type
+        if let Some(output) = &self.output {
+            write!(&mut signature, "-> {}", output).unwrap();
+        }
+
+        // Temporarily add an empty body and format, so we can parse the
+        // signature through pretty_code_fmt separately
+        signature.push_str(" {}\n");
+        pretty_code_fmt(&mut signature);
+
+        // Remove the temporary (emtpy) body to get clean signature
+        signature.trim_end_matches(" {}\n").to_string()
+    }
+
+    fn body_str(&self) -> String {
+        let mut body = String::new();
+
+        // Write function body
+        if let Some(file_path) = &self.file_path {
+            let real_path = file_path.real_path();
+            if let Some(ref block) = self.block {
+                match print_extracted_code(block, &real_path) {
+                    Ok(code) => {
+                        pretty_code_fmt(&mut body);
+                        write!(&mut body, "{}\n", code).unwrap();
+                    }
+                    Err(_) => {
+                        write!(&mut body, "Error extracting code").unwrap()
+                    }
+                }
+            } else {
+                // no function body
+                write!(&mut body, ";").unwrap();
+            }
+        }
+        body
+    }
+    pub fn function_block_str(&self) -> String {
+        let mut full_function = String::new();
+
+        // Concatenate signature and body
+        full_function.push_str(&self.signature_str());
+        full_function.push_str(&self.body_str());
+        full_function
+    }
 }
 
 impl Identifiable for RustFunction {
@@ -118,60 +194,8 @@ impl Debug for RustFunction {
 }
 
 impl Display for RustFunction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut formatted = String::new();
-
-        // Write function signature
-        write!(
-            &mut formatted,
-            "{}fn {}(",
-            if self.visibility().to_string().is_empty() {
-                String::from("")
-            } else {
-                format!("{} ", self.visibility)
-            },
-            self.name
-        )?;
-
-        // Write inputs
-        let inputs: Vec<String> = self
-            .inputs
-            .iter()
-            .map(|(name, typ)| {
-                if typ.is_empty() {
-                    name.clone() // if type is empty, just clone the name
-                } else {
-                    format!("{}: {}", name, typ) // else, format with ":"
-                }
-            })
-            .collect();
-        write!(&mut formatted, "{})", inputs.join(", "))?;
-
-        // Write output type
-        if let Some(output) = &self.output {
-            write!(&mut formatted, "-> {}", output)?;
-        }
-        write!(&mut formatted, "\n")?;
-
-        // Write function body
-        if let Some(file_path) = &self.file_path {
-            let real_path = file_path.real_path();
-            if let Some(ref block) = self.block {
-                match print_extracted_code(block, &real_path) {
-                    Ok(code) => {
-                        write!(&mut formatted, "{}\n", code)?;
-                        pretty_code_fmt(&mut formatted);
-                    }
-                    Err(_) => write!(&mut formatted, "Error extracting code")?,
-                }
-            } else {
-                // no function body
-                write!(&mut formatted, ";")?;
-            }
-        }
-
-        // Write the final formatted string to the formatter
-        write!(f, "{}", formatted)
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.function_block_str())
     }
 }
 

@@ -1,6 +1,5 @@
 use std::fmt;
-use std::fmt::Display;
-use std::fmt::Write;
+use std::fmt::{Display, Write};
 
 use super::format::pretty_code_fmt;
 use super::{Identifiable, RustFunction, Visibility};

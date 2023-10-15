@@ -1,5 +1,5 @@
 use std::fmt;
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::{Display, Write};
 
 use super::format::pretty_code_fmt;
 use super::{Identifiable, RustFunction, Visibility};
@@ -92,7 +92,6 @@ impl RustEnum {
         pretty_code_fmt(&mut methods_str);
         methods_str
     }
-
 }
 
 impl Display for RustEnum {
@@ -103,4 +102,3 @@ impl Display for RustEnum {
         write!(f, "{}", enum_str)
     }
 }
-
